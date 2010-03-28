@@ -6,6 +6,11 @@
 %%      2/ It creates a process evaluating the store_loop() function.
 %%      4/ It executes the server_loop() function.
 
+
+%%%%%% TODO!!!! TODO!!!! %%%%%%%%%
+%% We must be atomic when we abort!!! WE ARE NOT ATOMIC WHEN WE ABORT!! :(:(:(:(:(:(:(:(:(
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 -module(server).
 
 -export([start/0]).
@@ -122,13 +127,21 @@ store_loop(ServerPid, Database) ->
       ServerPid ! {pong, self()},
       store_loop(ServerPid,Database);
     {{write, Account, Value}, TransactionStart, ServerPid} ->
-      %TODO: if transactionTimestamp < readTimestamp -> abort (set transtactionStatus = abort)
-      %TODO: if transactionTimestamp < writeTimestamp -> skip write
-      %TODO: else proceed
-      io:format("Storing new value ~p in account ~p",[Value, Account]),
-      NewDB = updateDB(Account, Value, Database),
-      %TODO: set writeTimestamp = now()
-      io:format(".. Stored!~n"),
+      NewDB = case TransactionStart < getAccountStamp(write, Account, Database) of
+        true -> Database; %Skip the write
+        false ->
+          case TransactionStart < getAccountStamp(read, Account, Database) of
+            true ->
+              ServerPid ! {abortTransaction, TransactionStart},
+              Database;
+            false ->
+              io:format("Storing new value ~p in account ~p",[Value, Account]),
+              TempDB = updateDB(Account, Value, Database),
+              DB = setAccountStamp(write, TransactionStart, Account, TempDB),
+              io:format(".. Stored!~n"),
+              DB
+          end
+      end,
       store_loop(ServerPid, NewDB);
     {{read, Account}, TransactionStart, ServerPid} ->
       NewDB = case TransactionStart < getAccountStamp(write, Account, Database) of
@@ -139,7 +152,7 @@ store_loop(ServerPid, Database) ->
           Value = readDB(Account, Database),
           io:format("Value of ~p is ~p~n", [Account, Value]),
           %set readTimestamp
-          setAccountStamp(read, Account, Database)
+          setAccountStamp(read, TransactionStart, Account, Database)
       end,
       store_loop(ServerPid, NewDB);
     {Action, ServerPid} ->
@@ -180,12 +193,12 @@ getAccountStamp(read, Account, Database) ->
   Temp = lists:keyfind(Account, #db.account, Database),
   Temp#db.readTime.
 
-setAccountStamp(read, Account, Database) ->
+setAccountStamp(read, TransactionStart, Account, Database) ->
   {value, Temp, TempDB} = lists:keytake(Account, #db.account, Database),
-  [Temp#db{readTime = now()} | TempDB];
-setAccountStamp(write, Account, Database) ->
+  [Temp#db{readTime = erlang:max(Temp#db.readTime, TransactionStart)} | TempDB];
+setAccountStamp(write, TransactionStart, Account, Database) ->
   {value, Temp, TempDB} = lists:keytake(Account, #db.account, Database),
-  [Temp#db{writeTime = now()} | TempDB].
+  [Temp#db{writeTime = TransactionStart} | TempDB].
 
 findClient(TransactionStart, ClientList) ->
   ClientTuple = lists:keyfind(TransactionStart, #cl.transactionStart, ClientList),
