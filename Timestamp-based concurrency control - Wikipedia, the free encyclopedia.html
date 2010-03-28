@@ -1,0 +1,431 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0086)http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#Implementation_Issues -->
+<HTML xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr"><HEAD><META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<TITLE>Timestamp-based concurrency control - Wikipedia, the free encyclopedia</TITLE>
+
+<META http-equiv="Content-Style-Type" content="text/css">
+<META name="generator" content="MediaWiki 1.16alpha-wmf">
+<LINK rel="alternate" type="application/x-wiki" title="Edit this page" href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit">
+<LINK rel="edit" title="Edit this page" href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit">
+<LINK rel="apple-touch-icon" href="http://en.wikipedia.org/apple-touch-icon.png">
+<LINK rel="shortcut icon" href="http://en.wikipedia.org/favicon.ico">
+<LINK rel="search" type="application/opensearchdescription+xml" href="http://en.wikipedia.org/w/opensearch_desc.php" title="Wikipedia (en)">
+<LINK rel="copyright" href="http://creativecommons.org/licenses/by-sa/3.0/">
+<LINK rel="alternate" type="application/rss+xml" title="Wikipedia RSS Feed" href="http://en.wikipedia.org/w/index.php?title=Special:RecentChanges&feed=rss">
+<LINK rel="alternate" type="application/atom+xml" title="Wikipedia Atom Feed" href="http://en.wikipedia.org/w/index.php?title=Special:RecentChanges&feed=atom">
+<LINK rel="stylesheet" href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/shared.css" type="text/css" media="screen">
+<LINK rel="stylesheet" href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/commonPrint.css" type="text/css" media="print">
+<LINK rel="stylesheet" href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/main.css" type="text/css" media="screen">
+<LINK rel="stylesheet" href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/main(1).css" type="text/css" media="handheld">
+<!--[if lt IE 5.5000]><link rel="stylesheet" href="http://bits.wikimedia.org/skins-1.5/monobook/IE50Fixes.css?257z34" type="text/css" media="screen" /><![endif]-->
+<!--[if IE 5.5000]><link rel="stylesheet" href="http://bits.wikimedia.org/skins-1.5/monobook/IE55Fixes.css?257z34" type="text/css" media="screen" /><![endif]-->
+<!--[if IE 6]><link rel="stylesheet" href="http://bits.wikimedia.org/skins-1.5/monobook/IE60Fixes.css?257z34" type="text/css" media="screen" /><![endif]-->
+<!--[if IE 7]><link rel="stylesheet" href="http://bits.wikimedia.org/skins-1.5/monobook/IE70Fixes.css?257z34" type="text/css" media="screen" /><![endif]-->
+<LINK rel="stylesheet" href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/index.php" type="text/css" media="all">
+<LINK rel="stylesheet" href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/index(1).php" type="text/css" media="print">
+<LINK rel="stylesheet" href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/index(2).php" type="text/css" media="handheld">
+<LINK rel="stylesheet" href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/index(3).php" type="text/css" media="all">
+<LINK rel="stylesheet" href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/index(4).php" type="text/css" media="all">
+<SCRIPT type="text/javascript">
+var skin="monobook",
+stylepath="http://bits.wikimedia.org/skins-1.5",
+wgUrlProtocols="http\\:\\/\\/|https\\:\\/\\/|ftp\\:\\/\\/|irc\\:\\/\\/|gopher\\:\\/\\/|telnet\\:\\/\\/|nntp\\:\\/\\/|worldwind\\:\\/\\/|mailto\\:|news\\:|svn\\:\\/\\/",
+wgArticlePath="/wiki/$1",
+wgScriptPath="/w",
+wgScriptExtension=".php",
+wgScript="/w/index.php",
+wgVariantArticlePath=false,
+wgActionPaths={},
+wgServer="http://en.wikipedia.org",
+wgCanonicalNamespace="",
+wgCanonicalSpecialPageName=false,
+wgNamespaceNumber=0,
+wgPageName="Timestamp-based_concurrency_control",
+wgTitle="Timestamp-based concurrency control",
+wgAction="view",
+wgArticleId=217351,
+wgIsArticle=true,
+wgUserName=null,
+wgUserGroups=null,
+wgUserLanguage="en",
+wgContentLanguage="en",
+wgBreakFrames=false,
+wgCurRevisionId=341485279,
+wgVersion="1.16alpha-wmf",
+wgEnableAPI=true,
+wgEnableWriteAPI=true,
+wgSeparatorTransformTable=["", ""],
+wgDigitTransformTable=["", ""],
+wgMainPageTitle="Main Page",
+wgFormattedNamespaces={"-2": "Media", "-1": "Special", "0": "", "1": "Talk", "2": "User", "3": "User talk", "4": "Wikipedia", "5": "Wikipedia talk", "6": "File", "7": "File talk", "8": "MediaWiki", "9": "MediaWiki talk", "10": "Template", "11": "Template talk", "12": "Help", "13": "Help talk", "14": "Category", "15": "Category talk", "100": "Portal", "101": "Portal talk", "108": "Book", "109": "Book talk"},
+wgNamespaceIds={"media": -2, "special": -1, "": 0, "talk": 1, "user": 2, "user_talk": 3, "wikipedia": 4, "wikipedia_talk": 5, "file": 6, "file_talk": 7, "mediawiki": 8, "mediawiki_talk": 9, "template": 10, "template_talk": 11, "help": 12, "help_talk": 13, "category": 14, "category_talk": 15, "portal": 100, "portal_talk": 101, "book": 108, "book_talk": 109, "wp": 4, "wt": 5, "image": 6, "image_talk": 7},
+wgMWSuggestTemplate="http://en.wikipedia.org/w/api.php?action=opensearch\x26search={searchTerms}\x26namespace={namespaces}\x26suggest",
+wgDBname="enwiki",
+wgSearchNamespaces=[0],
+wgMWSuggestMessages=["with suggestions", "no suggestions"],
+wgRestrictionEdit=[],
+wgRestrictionMove=[],
+wgTrackingToken="9b61bfdaa9d5a8251cff91b74add70e8",
+wgClickTrackingIsThrottled=true,
+wgNotice="",
+wgNoticeLocal="";
+</SCRIPT>
+<SCRIPT src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/wikibits.js" type="text/javascript"></SCRIPT>
+<SCRIPT src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/ajax.js" type="text/javascript"></SCRIPT>
+<SCRIPT src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/mwsuggest.js" type="text/javascript"></SCRIPT>
+<SCRIPT type="text/javascript" src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/centralnotice.js"></SCRIPT><STYLE type="text/css">
+#centralNotice .siteNoticeSmall{display:none;}
+#centralNotice .siteNoticeSmallAnon{display:none;}
+#centralNotice .siteNoticeSmallUser{display:none;}
+#centralNotice.collapsed .siteNoticeBig{display:none;}
+#centralNotice.collapsed .siteNoticeSmall{display:block;}
+#centralNotice.collapsed .siteNoticeSmallUser{display:block;}
+#centralNotice.collapsed .siteNoticeSmallAnon{display:block;}
+#centralNotice.anonnotice .siteNoticeSmallUser{display:none !important;}
+#centralNotice.usernotice .siteNoticeSmallAnon{display:none !important;}
+</STYLE>
+
+
+<!--[if lt IE 7]><script type="text/javascript" src="http://bits.wikimedia.org/skins-1.5/common/IEFixes.js?257z34"></script>
+	<meta http-equiv="imagetoolbar" content="no" /><![endif]-->
+<SCRIPT src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/index(5).php" type="text/javascript"></SCRIPT><SCRIPT src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/index(6).php" type="text/javascript"></SCRIPT>
+
+<STYLE type="text/css">#bodyContent { position:relative; } 
+.topicon { position:absolute; top:-2em !important;}
+#coordinates{ position:absolute; top:1px !important; right:0px !important;}</STYLE></HEAD><STYLE type="text/css">@import url("chrome-extension://gofhjkjmkpinhpoiabjplobcaignabnl/flashblock.css");</STYLE><STYLE type="text/css">#AdContainer,#AdMiddle,#RadAd_Skyscraper,#ad-frame,#bbccom_leaderboard,#bbccom_mpu,#center_banner,#footer_adcode,#hbBHeaderSpon,#header_adcode,#hiddenHeaderSpon,#navbar_adcode,#pagelet_adbox,#rightAds,#rightcolumn_adcode,#top-advertising,#topMPU,#tracker_advertorial,.ad-now,.adbox,.adspot,.dfpad,.prWrap,.sponsored,[id^="adbrite"],[id^="konaLayer"],div[id="tooltipbox"][class^="itxt"],div[id^="google_ads_div"],embed[flashvars*="AdID"],iframe[id="dapIfM0"],iframe[name^="AdBrite"],iframe[src*="clicksor.com"],img[src*="clicksor.com"],ispan#ab_pointer,#A9AdsMiddleBoxTop,#A9AdsOutOfStockWidgetTop,#A9AdsServicesWidgetTop,#ADsmallWrapper,#Ad1,#Ad2,#Ad3Left,#Ad3Right,#AdBar1,#AdContainerTop,#AdHeader,#AdRectangle,#AdShowcase_F1,#AdSky23,#AdSkyscraper,#AdSponsor_SF,#AdTargetControl1_iframe,#AdText,#Ad_Block,#Ad_Center1,#Ad_Top,#Adrectangle,#AdsContent,#AdsWrap,#AdvertMPU23b,#Advertorial,#BigBoxAd,#CompanyDetailsNarrowGoogleAdsPresentationControl,#CompanyDetailsWideGoogleAdsPresentationControl,#ContentAd,#ContentAd1,#ContentAd2,#ContentAdPlaceHolder1,#ContentAdPlaceHolder2,#FP_Ad,#FooterAd,#FooterAdContainer,#HEADERAD,#HeaderAdsBlock,#HeroAd,#HomeAd1,#HouseAd,#Journal_Ad_125,#Journal_Ad_300,#LeftAdF1,#LeftAdF2,#PageLeaderAd,#RightSponsoredAd,#SectionAd300-250,#SidebarAdContainer,#SkyAd,#SponsoredAd,#TOP_ADROW,#TopAdPos,#VM-MPU-adspace,#VM-header-adwrap,#XEadLeaderboard,#XEadSkyscraper,#ad-160x600,#ad-250x300,#ad-300x250,#ad-300x250Div,#ad-728,#ad-banner,#ad-bottom,#ad-colB-1,#ad-footer,#ad-footprint-160x600,#ad-front-footer,#ad-front-sponsoredlinks,#ad-halfpage,#ad-label,#ad-leaderboard,#ad-leaderboard-bottom,#ad-leaderboard-top,#ad-left,#ad-lrec,#ad-medium-rectangle,#ad-middlethree,#ad-middletwo,#ad-module,#ad-mpu,#ad-placard,#ad-rectangle,#ad-righttop,#ad-skyscraper,#ad-space,#ad-splash,#ad-target,#ad-target-Leaderbord,#ad-top,#ad-tower,#ad-typ1,#ad-wrap-right,#ad-wrapper1,#ad-yahoo-simple,#ad125x125,#ad160x600,#ad160x600right,#ad1Sp,#ad2,#ad2Sp,#ad3,#ad300,#ad300-250,#ad300_x_250,#ad300x150,#ad300x250,#ad300x250Module,#ad300x60,#ad336,#ad375x85,#ad526x250,#ad600,#ad728Wrapper,#adB,#adBadges,#adBanner120x600,#adBannerTable,#adBar,#adFps,#adFtofrs,#adGroup1,#adHeader,#adL,#adLB,#adMPU,#adMiddle0Frontpage,#adMiniPremiere,#adPlaceHolderRight,#adRight,#adSenseModule,#adServer_marginal,#adSidebar,#adSidebarSq,#adSky,#adSlider,#adSpace3,#adSpace300_ifrMain,#adSpace4,#adSpace5,#adSpace6,#adSpace7,#adSpace_footer,#adSpace_top,#adSpecial,#adSpot-Leader,#adSpot-banner,#adSpot-mrec1,#adSpot-sponsoredlinks,#adSpot-textbox1,#adSpot-widestrip,#adSpotAdvertorial,#adSpotIsland,#adSpotSponsoredLinks,#adSquare,#adStaticA,#adStrip,#adSuperPremiere,#adTableCell,#adTag1,#adTag2,#adTop,#adTopboxright,#adUnit,#adWrapper,#adZoneTop,#ad_160x600,#ad_190x90,#ad_300,#ad_300x250,#ad_468_60,#ad_5,#ad_728_foot,#ad_728x90,#ad_A,#ad_B,#ad_Banner,#ad_C,#ad_C2,#ad_D,#ad_E,#ad_F,#ad_G,#ad_H,#ad_I,#ad_J,#ad_K,#ad_L,#ad_M,#ad_N,#ad_O,#ad_P,#ad_YieldManager-300x250,#ad_anchor,#ad_banner,#ad_banner_top,#ad_bar,#ad_bottom,#ad_box_colspan,#ad_branding,#ad_bs_area,#ad_center_monster,#ad_content_wrap,#ad_feature,#ad_haha_1,#ad_haha_4,#ad_halfpage,#ad_head,#ad_header,#ad_horseshoe_left,#ad_horseshoe_right,#ad_horseshoe_spacer,#ad_horseshoe_top,#ad_island,#ad_layer2,#ad_leader,#ad_leaderBoard,#ad_leaderboard,#ad_lwr_square,#ad_medium_rectangle,#ad_medium_rectangular,#ad_middle,#ad_mpu,#ad_play_300,#ad_rect,#ad_rect_body,#ad_rect_bottom,#ad_rectangle,#ad_related_links_div,#ad_related_links_div_program,#ad_report_leaderboard,#ad_report_rectangle,#ad_right,#ad_sidebar1,#ad_sidebar2,#ad_sidebar3,#ad_skyscraper,#ad_slot_livesky,#ad_space,#ad_ss,#ad_top,#ad_top_holder,#ad_vertical,#adbanner,#adbnr,#adbottom,#adbox2,#adclear,#adcode1,#adcode2,#adcode3,#adcode4,#adcolumnwrapper,#adcontainer,#adcontainsm,#addiv-bottom,#addiv-top,#adframe:not(frameset),#adhead,#adhead_g,#adheader,#adimg,#adlabel,#adlabelFooter,#adlinks,#adlinkws,#admid,#admiddle3center,#admiddle3left,#adposition,#adposition-C,#adposition2,#adposition4,#adright,#adright2,#ads-468,#ads-block,#ads-bot,#ads-bottom,#ads-dell,#ads-horizontal,#ads-indextext,#ads-lrec,#ads-rhs,#ads-top,#ads2,#ads300,#ads336x280,#ads7,#adsID,#ads_160,#ads_300,#ads_728,#ads_belowforumlist,#ads_belownav,#ads_bottom_outer,#ads_catDiv,#ads_right,#ads_sidebar_roadblock,#ads_top,#adsbottom,#adsense,#adsense-text,#adsenseWrap,#adsensetopplay,#adsonar,#adspace-300x250,#adspace300x250,#adspaceBox,#adspaceBox300,#adspace_header,#adsright,#adstop,#adtech_takeover,#adtop,#adv-box,#adv-masthead,#adv_bg,#adv_google_300,#adv_google_728,#adv_text_link_bar,#adv_top,#adv_top_banner_wrapper,#adv_wide_banner,#advert-boomer,#advert-header,#advert-leaderboard,#advert-top,#advertBanner,#advert_250x250,#advert_box,#advert_leaderboard,#advert_lrec_format,#advert_mpu,#advertbox,#advertbox2,#advertbox3,#advertbox4,#adverthome,#advertise,#advertise-now,#advertisement160x600,#advertisement728x90,#advertisementLigatus,#advertisementPrio2,#advertiserLinks,#advertising,#advertising-skyscraper,#adwin_rec,#adwith,#adwords-4-container,#adwrapper,#adxtop,#adzoneBANNER,#agi-ad300x250,#agi-ad300x250overlay,#agi-sponsored,#annoying_ad,#ap_adframe,#article-box-ad,#articleAdReplacement,#articleSideAd,#article_ad,#article_box_ad,#atlasAdDivGame,#banner-ad,#banner-ads,#banner468x60,#banner728x90,#bannerAdTop,#banner_ad,#banner_topad,#bannerad,#bannerad2,#bg_YieldManager-300x250,#bigAd,#bigBoxAd,#bigadbox,#bigadspot,#billboard_ad,#block-ad_cube-1,#block_advert,#blox-big-ad,#blox-halfpage-ad,#blox-tile-ad,#botad,#bottom-ad-container,#bottom-ads,#bottomAd,#bottomAdSenseDiv,#bottomRightAdSpace,#bottom_ad,#bottom_ad_area,#bottom_ads,#bottom_overture,#bottom_player_adv,#bottom_sponsor_ads,#bottom_sponsored_links,#bottom_text_ad,#bottomad,#box-googleadsense-1,#box-googleadsense-r,#boxAd300,#boxAdContainer,#boxad1,#boxad2,#boxad3,#boxad4,#boxad5,#bps-header-ad-container,#btr_horiz_ad,#button-ads-horizontal,#button-ads-vertical,#button_ad_wrap,#cellAd,#channel_ad,#channel_ads,#cnnRR336ad,#cnnTopAd,#colRightAd,#column4-google-ads,#commercial_ads,#common_right_lower_player_adspace,#common_right_player_adspace,#common_top_adspace,#containerLocalAds,#containerMrecAd,#content-ad-header,#contentAd,#content_ad_square,#content_ad_top,#content_ads_content,#content_box_300body_sponsoredoffers,#content_box_adright300_google,#contentad,#contentad_imtext,#contentad_right,#contentads,#contentinlineAd,#contextualad,#ctl00_MasterHolder_IBanner_adHolder,#ctl00_VBanner_adHolder,#ctl00_adFooter,#ctrlsponsored,#cubeAd,#cube_ads,#cube_ads_inner,#cubead,#cubead-2,#divAd,#divAdBox,#divWrapper_Ad,#div_video_ads,#dlads,#download_ads,#ds-mpu,#evotopTen_advert,#exads,#featuredAdContainer2,#featuredAds,#feed_links_ad_container,#first_ad_unit,#fl_hdrAd,#footer-ad,#footer-sponsored,#footerAd,#footerAdDiv,#footerAdverts,#footer_ad,#footer_ad_block,#footer_adspace,#footer_text_ad,#fr_ad_center,#frnContentAd,#from_our_sponsors,#front_mpu,#ft-ad,#ft-ad-1,#ft-ad-container,#fusionad,#g_ad,#g_adsense,#ga_300x250,#gad,#gallery-ad-m0,#gallery_ads,#game-info-ad,#global_header_ad_area,#google-ad,#google-ad-art,#google-ad-tower,#google-ads,#google-ads-bottom,#google-ads-left-side,#google-adsense-mpusize,#googleAd,#googleAds,#googleAdsense,#googleAdsenseBanner,#googleAdsenseBannerBlog,#googleAdwordsModule,#googleAfcContainer,#google_ad,#google_ad_test,#google_ads,#google_ads_frame1,#google_ads_test,#googlead,#googleads,#googlesponsor,#gsyadrectangleload,#gsyadrightload,#gsyadtop,#gsyadtopload,#gtopadvts,#halfPageAd,#halfe-page-ad-box,#hdtv_ad_ss,#header-ad,#header-ads,#header-advert,#headerAd,#headerAdBackground,#headerAdContainer,#headerAdsWrapper,#headerTopAd,#header_advertisement_top,#header_leaderboard_ad_container,#headerad,#headeradbox,#headline_ad,#hiddenadAC,#homeTopRightAd,#home_ad,#home_spensoredlinks,#homepage-ad,#hometop_234x60ad,#horizontal-banner-ad,#horizontal_ad,#houseAd,#hp-store-ad,#icePage_SearchLinks_AdRightDiv,#inlinead,#inlinegoogleads,#inner-advert-row,#insider_ad_wrapper,#instoryad,#int-ad,#interstitial_ad_wrapper,#islandAd,#j_ad,#landing-adserver,#lateAd,#lb-sponsor-left,#lb-sponsor-right,#leader-board-ad,#leader-sponsor,#leaderad,#leaderad_section,#leaderboard-ad,#leaderboard-bottom-ad,#leaderboard_ad,#leftSectionAd300-100,#left_ad,#left_adspace,#leftad,#leftads,#lg-banner-ad,#linkAds,#live-ad,#longAdSpace,#mBannerAd,#main-ad,#main-ad160x600,#main-ad160x600-img,#main-ad728x90,#mainAdvert,#main_ad,#main_rec_ad,#mastAdvert,#mastad,#masthead_ad,#medRecAd,#media_ad,#menuAds,#mid-ad300x250,#mid-table-ad,#mid_ad_title,#mid_mpu,#middlead,#middleads,#midrect_ad,#midstrip_ad,#mini-ad,#module-google_ads,#module_box_ad,#most_popular_ad,#mpu,#mpu-advert,#mpuAd,#mpuDiv,#mpuWrapperAd,#mpu_banner,#mpu_holder,#mpuad,#mrecAdContainer,#multiLinkAdContainer,#n_sponsor_ads,#natadad300x250,#navi_banner_ad_780,#new_topad,#noresultsads,#northad,#oanda_ads,#onespot-ads,#p-googleadsense,#page-header-ad,#page_content_top_ad,#pcworldAdBottom,#pcworldAdTop,#player_ad,#portlet-advertisement-left,#portlet-advertisement-right,#post5_adbox,#priceGrabberAd,#product-adsense,#promo-ad,#promoAds,#ps-vertical-ads,#pub468x60,#r1SoftAd,#rail_ad1,#rail_ad2,#realEstateAds,#rect_ad,#rectangle-ad,#rectangle_ad,#refine-300-ad,#region-top-ad,#rh-ad-container,#rh_tower_ad,#right-ad,#rightAd,#rightAd300x250,#rightAdColumn,#rightColAd,#rightColumnMpuAd,#rightColumnSkyAd,#right_ad_wrapper,#right_advertisement,#right_advertising,#rightad,#rightadvertbar-doubleclickads,#rightbar-ad,#rightside_ad,#rotatingads,#rtMod_ad,#sAdsBox,#search-google-ads,#secondBoxAdContainer,#servfail-ads,#sew-ad1,#shoppingads,#show-ad,#side-ad-container,#sideAd,#sideBarAd,#side_ad_wrapper,#side_ads_by_google,#sidead,#sidebar-125x125-ads,#sidebar-125x125-ads-below-index,#sidebar-ad-boxes,#sidebar-ad-space,#sidebar-ad-wrap,#sidebar-ads,#sidebar_sponsoredresult_body,#sidebarad,#sideline-ad,#site-leaderboard-ads,#site_top_ad,#sky-ad,#skyAd,#skyScrapperAd,#sky_ad,#skyscraperAd,#skyscraper_advert,#sliderAdHolder,#sm-banner-ad,#small_ad,#smallerAd,#speeds_ads,#sphereAd,#splinks,#sponLinkDiv_1,#sponlink,#spons_left,#sponseredlinks,#sponsorAd1,#sponsorAd2,#sponsorLinks,#sponsor_banderole,#sponsor_box,#sponsor_panSponsor,#sponsored,#sponsored-links,#sponsored-resources,#sponsored1,#sponsoredBox1,#sponsoredBox2,#sponsoredLinks,#sponsoredList,#sponsoredResults,#sponsoredSiteMainline,#sponsoredSiteSidebar,#sponsored_game_row_listing,#sponsored_links,#sponsoredlinks,#sponsoredlinks_cntr,#sponsoredresults_top,#sponsorlink,#spotlightAds,#spotlightad,#squareAd,#squareAdSpace,#square_ad,#sticky-ad,#stickyBottomAd,#story-ad-a,#story-ad-b,#story-sponsoredlinks,#storyAdWrap,#subpage-ad-right,#subpage-ad-top,#swads,#synch-ad,#tblAd,#tbl_googlead,#template_ad_leaderboard,#tertiary_advertising,#textAd,#textAds,#text_ad,#text_advert,#thefooterad,#themis-ads,#tile-ad,#tmglBannerAd,#top-ad,#top-ad-menu,#top-ads,#top-ads-tabs,#top-advertisement,#top-banner-ad,#top-search-ad-wrapper,#topAd,#topAd728x90,#topAdBanner,#topAdSenseDiv,#topAds,#topBannerAd,#topNavLeaderboardAdHolder,#top_ad,#top_ad_area,#top_ad_game,#top_ad_wrapper,#top_ads,#top_advertise,#top_advertising,#top_player_adv,#topad_left,#topad_right,#topads,#topcustomad,#towerad,#twogamesAd,#txt_link_ads,#undergameAd,#upperMpu,#upperad,#urban_contentad_article,#v_ad,#vert_ad,#vertical_ad,#vertical_ads,#video_cnv_ad,#video_overlay_ad,#walltopad,#welcomeAdsContainer,#welcome_ad_mrec,#wgtAd,#wrapAdRight,#wrapAdTop,#yahoo-ads,#yahoo-sponsors,#yahoo_ads,#yahoo_ads_2010,#yan-sponsored,#ybf-ads,#yfi_fp_ad_mort,#yfi_fp_ad_nns,#ygrp-sponsored-links,#ymap_adbanner,#yn-gmy-ad-lrec,#yreSponsoredLinks,#ysm_ad_iframe,#zoneAdserverMrec,#zoneAdserverSuper,.ADBAR,.Ad120x600,.Ad160x600,.Ad300x250L,.AdBox7,.AdContainerBox308,.AdHere,.AdPlaceHolder,.AdRingtone,.AdSense,.AdSpace,.AdUnit,.AdUnit300,.Ad_C,.Ad_D_Wrapper,.Ad_E_Wrapper,.Ad_Right,.Ads,.AdvertisementTextTag,.ArticleInlineAd,.BannerAd,.BlockAd,.CG_adkit_leaderboard,.DeptAd,.FT_Ad,.FlatAds,.HPNewAdsBannerDiv,.HomeContentAd,.LeftTowerAd,.M2Advertisement,.MD_adZone,.MPU,.MPUHolder,.PU_DoubleClickAdsContent,.Post5ad,.RelatedAds,.RightRailTop300x250Ad,.RightSponsoredAdTitle,.RightTowerAd,.SidebarAd,.SponsoredAdTitle,.SponsoredLinksGrayBox,.StandardAdLeft,.StandardAdRight,.TextAd,.TheEagleGoogleAdSense300x250,.TopAd,.TopAdL,.TopAdR,.UIStandardFrame_SidebarAds,.UIWashFrame_SidebarAds,.VerticalAd,.WidgetAdvertiser,.ad-160x600,.ad-300,.ad-300-block,.ad-300-blog,.ad-300x100,.ad-300x250,.ad-728,.ad-background,.ad-banner,.ad-bigsize,.ad-block,.ad-bottom,.ad-button,.ad-cell,.ad-div,.ad-footer,.ad-footer-leaderboard,.ad-google,.ad-gray,.ad-hdr,.ad-holder,.ad-homeleaderboard,.ad-island,.ad-leaderboard,.ad-links,.ad-medium,.ad-medium-two,.ad-mpu,.ad-other,.ad-placeholder,.ad-poster,.ad-rect,.ad-rectangle,.ad-rectangle-text,.ad-related,.ad-rh,.ad-ri,.ad-right,.ad-right-txt,.ad-section,.ad-sidebar300,.ad-slot,.ad-space,.ad-space-mpu-box,.ad-spot,.ad-text,.ad-tile,.ad-top,.ad-top-left,.ad-wrap,.ad-wrapper,.ad0,.ad1,.ad10,.ad120,.ad160,.ad18,.ad19,.ad2,.ad21,.ad3,.ad300,.ad300x250,.ad300x250Top,.ad300x600,.ad310,.ad336x280,.ad450,.ad6,.ad620x70,.ad7,.ad728,.ad728x90,.ad8,.adAgate,.adBanner,.adBannerTyp1,.adBannerTypSortableList,.adBannerTypW300,.adBgBottom,.adBgMId,.adBgTop,.adBoxSingle,.adCMRight,.adColumn,.adCreative,.adFrame,.adFtr,.adFullWidthMiddle,.adGoogle,.adHeader,.adHeadline,.adHolder,.adHome300x250,.adInNews,.adLabel,.adLeader,.adLeaderForum,.adLeaderboard,.adLeft,.adMkt2Colw,.adNewsChannel,.adNoticeOut,.adObj,.adRight,.adServer,.adSlot,.adSpBelow,.adSpacer,.adSpot,.adSpot-textBox,.adSpotIsland,.adSquare,.adSuperboard,.adTag,.adText,.adTileWrap,.adTitle,.adTout,.adTxt,.adWithTab,.adWrapper,.ad_1,.ad_125,.ad_130x90,.ad_160,.ad_160x600,.ad_2,.ad_3,.ad_300,.ad_300_250,.ad_300x250,.ad_336x280,.ad_350x250,.ad_468,.ad_600,.ad_728,.ad_728x90,.ad_amazon,.ad_biz,.ad_block_338,.ad_bottom_leaderboard,.ad_box,.ad_box2,.ad_caption,.ad_contain,.ad_container,.ad_content_wide,.ad_footer,.ad_framed,.ad_front_promo,.ad_hpm,.ad_launchpad,.ad_leader,.ad_leaderboard,.ad_left,.ad_loc,.ad_lrec,.ad_medrect,.ad_mpu,.ad_mrec,.ad_mrec_title_article,.ad_notice,.ad_p360,.ad_partner,.ad_plus,.ad_post,.ad_power,.ad_rectangle,.ad_sidebar,.ad_skyscraper,.ad_slug_table,.ad_space,.ad_sponsor,.ad_spot_b,.ad_spot_c,.ad_square_r,.ad_square_top,.ad_top,.ad_top_leaderboard,.ad_tower,.ad_unit,.ad_wide,.ad_wrap,.ad_wrapper,.ad_wrapper_fixed,.ad_zone,.adarea,.adbannerright,.adbar,.adborder,.adbot,.adbottom,.adbox-outer,.adbox_366x280,.adbox_468X60,.adbox_bottom,.adcode,.adcolumn_wrapper,.adcontainer,.adcopy,.addiv,.adfoot,.adhead,.adheader,.adheader100,.adhere,.adi,.adinfo,.adinside,.adjlink,.adkit-advert,.adkit-lb-footer,.adlabel-horz,.adlabel-vert,.adline,.adlnklst,.admarker,.admedrec,.admodule,.admpu,.adnotice,.adpadding,.adrow,.adrow-post,.ads-banner,.ads-categories-bsa,.ads-links-general,.ads-profile,.ads-right,.ads-sidebar,.ads-text,.ads2,.ads3,.adsArea,.adsBox,.adsImages,.adsTextHouse,.adsWithUs,.ads_300,.ads_728x90,.ads_big,.ads_big-half,.ads_container,.ads_disc_anchor,.ads_disc_leader,.ads_disc_lwr_square,.ads_disc_skyscraper,.ads_disc_square,.ads_div,.ads_header,.ads_mpu,.ads_right,.ads_sc_tl_i,.ads_side,.ads_takeover,.adsborder,.adscreen,.adsection_a2,.adsection_c2,.adsense,.adsense-heading,.adsense-title,.adsenseContainer,.adsingle,.adslogan,.adspace,.adspace-MR,.adspacer,.adstrip,.adtag,.adtop,.adv-mpu,.adv250,.advBottomHome,.advHr,.advIdentifier,.adv_container,.adv_right,.adverTag,.adver_cont_below,.advert-box,.advert-mpu,.advert-skyscraper,.advert-text,.advertCont,.advertContainer,.advertHeadline,.advertRight,.advertText,.advert_468x60,.advert_box,.advert_cont,.advert_leaderboard,.advert_note,.advertise,.advertise-homestrip,.advertise-horz,.advertise-leaderboard,.advertise-vert,.advertiseContainer,.advertisement,.advertisement-728x90,.advertisement-block,.advertisement-top,.advertisement468,.advertisementColumnGroup,.advertisementContainer,.advertisementPanel,.advertisement_caption,.advertisement_header,.advertisement_horizontal,.advertiser,.advertising-header,.advertisingTable,.advertisment_two,.advertorial,.adverts,.advt,.advt-banner-3,.advt300,.advt720,.adwrapper,.adwrapper-lrec,.affiliate-link,.affiliate-sidebar,.affiliateAdvertText,.agi-adsaleslinks,.alt_ad,.anchorAd,.aolSponsoredLinks,.aopsadvert,.article-ads,.articleAd,.articleAds,.articleAdsL,.articleEmbeddedAdBox,.article_ad,.article_adbox,.aseadn,.aux-ad-widget-2,.b-astro-sponsored-links_horizontal,.b-astro-sponsored-links_vertical,.banner-ad,.banner-ads,.banner-adverts,.banner300x100,.banner300x250,.banner468,.bannerAd,.bannerAdWrapper300x250,.bannerAdWrapper730x86,.banner_300x250,.banner_728x90,.banner_ad,.banner_ad_footer,.banner_ad_leaderboard,.bannerad,.barkerAd,.bgnavad,.bigAd,.big_ads,.bigad,.billboard_ad,.block-ad,.block_ad,.blocked-ads,.blog-ads-container,.blogAdvertisement,.blogBigAd,.blog_ad,.body_ad,.body_sponsoredresults_bottom,.body_sponsoredresults_middle,.body_sponsoredresults_top,.bookseller-header-advt,.bottomAd,.bottomAds,.bottom_ad_block,.bottom_sponsor,.bottomad,.bottomrightrailAd,.boxAd,.box_ad,.box_advertisment_62_border,.box_content_ad,.box_content_ads,.bps-ad-wrapper,.bps-advertisement,.bps-advertisement-inline-ads,.bullet-sponsored-links,.bullet-sponsored-links-gray,.burstContentAdIndex,.buttonAd,.buttonadbox,.cA-adStrap,.cb_footer_sponsor,.cb_navigation_ad,.cdAdTitle,.cdmainlineSearchAdParent,.cdsidebarSearchAdParent,.centerAd,.center_ad,.centerad,.clearerad,.cm_ads,.cnn160AdFooter,.cnnAd,.cnnMosaic160Container,.cnnStoreAd,.cnnStoryElementBoxAd,.cnnWCAdBox,.cnnWireAdLtgBox,.cnn_adcntr300x100,.cnn_adspc336cntr,.cnn_adtitle,.column2-ad,.confirm_ad_left,.confirm_ad_right,.confirm_leader_ad,.consoleAd,.container_serendipity_plugin_google_adsense,.content_ad,.content_adsq,.contentad,.contenttextad,.cp_ad,.cpmstarHeadline,.cpmstarText,.ct_ad,.cubeAd,.cube_ads,.darla_ad,.dartAdImage,.dart_ad,.dart_tag,.dartadvert,.dartiframe,.dc-ad,.dcAdvertHeader,.deckAd,.detailMpu,.divads,.dmco_advert_iabrighttitle,.download_ad,.downloadad,.dynamic_ad,.ec-ads,.entryad,.ez-clientAd,.f_Ads,.featuredAds,.featuredadvertising,.flagads,.flash_advert,.flashad,.flexiad,.flipbook_v2_sponsor_ad,.footerAd,.footerAdModule,.footerTextAd,.footer_ad,.footer_ads,.footer_block_ad,.footer_line_ad,.ft-ad,.ftdContentAd,.full_ad_box,.g3rtn-ad-site,.g_ggl_ad,.gads_cb,.gglAds,.google-ad-container,.google-ads,.google-ads-boxout,.google-right-ad,.google-sponsored-ads,.google468_60,.googleAd,.googleAd-content,.googleAd-list,.googleAdBox,.googleAdSense,.googleAd_body,.googleAds,.googleAdsense,.googleProfileAd,.googlead,.googleads,.googleads_300x250,.googleads_title,.gpAds,.gradientAd,.gt_ad_300x250,.gt_ad_728x90,.gutter-ad-left,.gutter-ad-right,.h_Ads,.h_ad,.hd_advert,.header-advert,.headerAdvert,.header_ad,.header_advertisment,.hi5-ad,.highlightsAd,.hm_advertisment,.home-ad-links,.homeAd,.homeMediumAdGroup,.homepage-ad,.homepageFlexAdOuter,.homepageMPU,.hor_ad,.horizontalAd,.hortad,.houseAdsStyle,.hp2-adtag,.hp_ad_cont,.hp_ad_text,.hp_t_ad,.hp_w_ad,.ic-ads,.idMultiAd,.image-advertisement,.imageads,.in-page-ad,.in-story-text-ad,.indy_googleads,.inline-mpu-left,.inlineSideAd,.inline_ad_title,.inlinead,.inlist-ad,.inner-advt-banner-3,.innerAds,.innerad,.inpostad,.islandAd,.js-advert,.kw_advert,.kw_advert_pair,.l_ad_sub,.largeRectangleAd,.leader_ad,.leaderboardAd,.left-ad,.leftAd,.leftad,.linead,.link_advertise,.live-search-list-ad-container,.log_ads,.lowerAds,.m_banner_ads,.macAd,.macad,.main-tabs-ad-block,.main_ad,.main_adbox,.map_media_banner_ad,.marginadsthin,.marketing-ad,.mdl-ad,.media-advert,.medium-rectangle-ad,.messageBoardAd,.micro_ad,.mid_ad,.midad,.min_navi_ad,.miniad,.mod-ad-lrec,.mod-ad-n,.mod-adopenx,.mod_admodule,.module-ad-small,.module-ads,.modulegad,.moduletable-advert,.moduletablesquaread,.mpu-ad,.mpu-title,.mpuAd,.mpuBox,.mpuContainer,.mpuTextAd,.mpu_ad,.mpu_gold,.mpu_platinum,.mpuholderportalpage,.msfg-shopping-mpu,.mwaads,.nadvt300,.naviad,.nba300Ad,.nbaT3Ad160,.nbaTwo130Ads,.nbc_ad_carousel_wrp,.newTopAdContainer,.newad,.nf-adbox,.nn-mpu,.normalAds,.nrAds,.oas-bottom-ads,.oio-banner-zone,.oio-link-sidebar,.oio-zone-position,.onethirdadholder,.openx,.openx-ad,.ov_spns,.padadv,.pageLeaderAd,.pagead,.partnersTextLinks,.pencil_ad,.player_ad_box,.player_page_ad_box,.pnp_ad,.podSponsoredLink,.post-ad,.post_ad,.post_sponsor_unit,.postbit_adcode,.prebodyads,.premium_ad_container,.promoAd,.promoAds,.publication-ad,.puff-advertorials,.quigo-ad,.qzvAdDiv,.r_ad_box,.rad_container,.rectad,.rectangleAd,.rectanglead,.redads_cont,.regularad,.relatedAds,.result_ad,.results_sponsor,.results_sponsor_right,.rght300x250,.rhads,.rhs-ad,.rhs-ads-panel,.right-ad,.right-ad-holder,.right-ad2,.rightAd,.right_ad,.right_ad_text,.right_hand_advert_column,.rightad,.rightad_1,.rightad_2,.rightads,.rightadunit,.rightcol_boxad,.rightcoladvert,.rt_ad1_300x90,.rt_ad_300x250,.rt_ad_call,.savvyad_unit,.sb-ad-sq-bg,.sbAdUnitContainer,.sb_adsN,.sb_adsNv2,.sb_adsW,.sb_adsWv2,.scanAd,.sci-ad-main,.sci-ad-sub,.search-sponsor,.search-sponsored,.searchAd,.searchSponsoredResultsBox,.search_column_results_sponsored,.search_results_sponsored_top,.section-sponsor,.section_mpu_wrapper,.selfServeAds,.sidbaread,.side-ad,.side_ad,.sidead,.sideadsbox,.sideadvert,.sidebar-ad,.sidebar-text-ad,.sidebarAd,.sidebarAdUnit,.sidebarAdvert,.sidebar_ad,.sidebar_box_ad,.sidebarad,.sidebarad_bottom,.sideheadnarrowad,.sideheadsponsorsad,.singleAd,.singleAdsContainer,.singlead,.sitesponsor,.skinAd,.skin_ad_638,.sky-ad,.skyAd,.skyAdd,.sky_ad,.skyscraper-ad,.smallSkyAd1,.smallSkyAd2,.small_ad,.small_ads,.smallad-left,.smallsponsorad,.specialAd175x90,.spl_ad,.spl_ad2,.spl_ad_plus,.splitAd,.spons-link,.sponslink,.sponsor-ad,.sponsor-links,.sponsorArea,.sponsorPost,.sponsorPostWrap,.sponsor_line,.sponsoradtitle,.sponsorbox,.sponsored-chunk,.sponsored-links,.sponsored-post,.sponsored-text,.sponsoredLinks,.sponsoredLinksHeader,.sponsored_ads,.sponsored_box,.sponsored_box_search,.sponsored_by,.sponsored_links,.sponsored_links_title_container,.sponsored_links_title_container_top,.sponsored_links_top,.sponsoredibbox,.sponsoredlinks,.sponsorlink,.squareAd,.square_ad,.squared_ad,.ss-ad-mpu,.store-ads,.story_AD,.story_right_adv,.subad,.subcontent-ad,.supercommentad_left,.supercommentad_right,.surveyad,.t10ad,.tab_ad,.tab_ad_area,.tablebordersponsor,.tadsanzeige,.tadsbanner,.tadselement,.tblTopAds,.tbl_ad,.teaserAdContainer,.teaser_adtiles,.text-ad-links,.text-g-advertisement,.text-g-group-short-rec-ad,.text-g-net-grp-google-ads-article-page,.textAd,.textAds,.text_ads,.textad,.textlink-ads,.thisIsAd,.thisIsAnAd,.ticket-ad,.tileAds,.title_adbig,.toolad,.toolbar-ad,.top-ad,.top-ad-space,.top-ads,.topAdWrap,.topAdvertisement,.topBannerAd,.top_ad,.top_ad_disclaimer,.top_ad_wrapper,.top_advert,.top_sponsor,.topad,.topadbox,.topadspot,.topcontentadvertisement,.topstoriesad,.towerAds,.tower_ad_disclaimer,.ts-ad_unit_bigbox,.ts-banner_ad,.ttlAdsensel,.twoColumnAd,.twoadcoll,.twoadcolr,.tx_smartadserver_pi1,.txt-ads,.type_promoads,.usenext,.vertad,.videoAd,.view-promo-mpu-right,.wide-ad,.wide-skyscraper-ad,.wideAdTable,.wide_ads,.widget-entry-ads-160,.wikia_ad_placeholder,.withAds,.wnMultiAd,.y7-advertisement,.yahoo-sponsored,.yahoo_ads,.yan-sponsored,.ygrp-ad,.yrail_ad_wrap,.yrail_ads,.ysmsponsor,.ysponsor,a[href^="http://adserving.liveuniversenetwork.com/"],a[href^="http://latestdownloads.net/download.php?"],a[href^="http://www.FriendlyDuck.com/AF_"],a[href^="http://www.adbrite.com/mb/commerce/purchase_form.php?"],a[href^="http://www.liutilities.com/aff"],a[href^="http://www.my-dirty-hobby.com/?sub="],a[href^="http://www.ringtonematcher.com/"],[src*="sixsigmatraffic.com"],#Adbanner,#AdvertiseFrame,#ad-container,#ad-wrap,#ads,#ad1,#ad728x90,#adBanner,#adContainer,.advert,#ad_container,#ad_square,#ad_wrapper,#adbox,#advert,#adposition3,.adElement,#sidebar_ads,.adright,#adspace,#advertisement,#featuread,#footer_ads,#head-ad,#header_ad,#topad,.AdBox,.AdTitle,.ad-container,.ad468,.adBox,.adContainer,.adModule,.adSpace,.ad_content,.ad_header,.ad_right,.ad_text,.adbanner,.adframe,.adlist,.adpic,.ads:not(body),.adtext,.advert-horizontal,.advertising,.advertisment,.affiliate,.boxad,.contentAd,.header-ad,.headerAd,.header_ad_center,.horizontal_ad,.mpu,.textads,.topAds,#adt[align="right"][style="border-left: 1px solid rgb(201, 215, 241);"],#mbEnd[width="30%"][style],#mboxEnd[width="30%"][style],div#mclip_container:first-child:last-child,div#tads.c,div.ch[id^="tba"][style],div.ch[id^="tpa"][style],div[style="font-size: small; background-color: rgb(255, 249, 221);"],div[style^="background: rgb(255, 248, 221) none repeat scroll 0% 0%; margin-top: 10px;"],table.ra[align="left"][width="30%"],table.ra[align="right"][width="30%"],table[align="center"][cellpadding="0"][style*="padding: 8px;"][style*="rgb(255, 248, 221);"][width="100%"],table[style^="padding: 8px; background: rgb(255, 248, 221) none repeat scroll 0% 0%; -moz-background-clip:"] { visibility:hidden !important;    display:none !important; }</STYLE><BODY class="mediawiki ltr ns-0 ns-subject page-Timestamp-based_concurrency_control skin-monobook">
+	<DIV id="globalWrapper">
+		<DIV id="column-content">
+	<DIV id="content"><DIV style="visibility: hidden; display: none; width: 602px; height: 402px; margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; background-color: white; position: absolute; right: 2em; top: 1em; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-color: gray; border-right-color: gray; border-bottom-color: gray; border-left-color: gray; z-index: 13; "><IFRAME scrolling="no" frameborder="0" style="z-index: 14; position: absolute; right: 1px; top: 1px; width: 600px; height: 400px; margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; "></IFRAME><IMG title="close" src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/Button_hide.png" style="z-index: 15; position: absolute; right: 11px; top: 9px; width: 18px; cursor: pointer; "></DIV>
+		<A id="top"></A>
+		<DIV id="siteNotice"><SCRIPT type="text/javascript">if (wgNotice != '') document.writeln(wgNotice);</SCRIPT><DIV id="centralNotice" class="expanded anonnotice"><STYLE type="text/css"> 
+/*
+Styles for  Notices
+*/
+
+.notice-wrapper-wikimania-scholar, .notice-collapsed-wrapper-wikimania-scholar {
+    margin: 2px auto 0;
+    width: 100%;
+    padding: 0;
+    font-family: 'Arial','Helvetica','Tahoma',sans-serif;
+    color: #333;
+    background-color: #ddd;
+    font-size: .9em;
+    font-weight: 200;
+}
+
+.notice-wrapper-wikimania-scholar
+{
+    border: 1px solid #bbb;
+    background-color: #fcfcfc;
+    text-align: left;
+    font-size: .9em;
+}
+
+.notice-wrapper-wikimania-scholar a
+{
+    color: #006699;
+}
+
+.trans-box
+{
+    text-align: right;
+    font-size: 0.8em;
+    padding: 0;
+    white-space: nowrap;
+}
+
+.toggle-box-wikimania-scholar
+{
+    text-align: right;
+    font-size: 0.8em;
+    padding: 0;
+}
+
+.notice-text-wikimania-scholar
+{
+    margin: 0 auto 5px;
+    padding: 7px 5px 5px;
+    font-size: 1.2em;
+}
+
+.line-ht-fix
+{
+    line-height: 1em;
+}
+
+#centralNotice.anonnotice .siteNoticeUser 
+{
+    display:none !important;
+}
+
+#centralNotice.collapsed .siteNoticeUser
+{
+    display:none;
+}
+
+</STYLE>
+
+<TABLE class="siteNoticeUser notice-wrapper-wikimania-scholar">
+<TBODY><TR>
+ <TD>
+  <DIV class="notice-text-wikimania-scholar">
+  <A href="http://wikimania2010.wikimedia.org/wiki/Scholarships">Scholarship</A> applications for <A href="http://wikimania2010.wikimedia.org/wiki/">Wikimania 2010</A> are now open. <A href="http://wikimania2010.wikimedia.org/wiki/Scholarships">Apply now!</A>
+  </DIV>
+ </TD>
+ <TD class="line-ht-fix">
+   <SPAN class="toggle-box-wikimania-scholar">
+   [<A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#" onclick="toggleNotice();return
+false">Hide</A>]
+ </SPAN><BR>
+  <SPAN class="trans-box">
+  [<A href="http://meta.wikimedia.org/wiki/Wikimania_2010/CentralNotice">Help us with translations!</A>]
+  </SPAN>
+ </TD>
+</TR>
+</TBODY></TABLE>
+<DIV class="siteNoticeSmallAnon notice-collapsed-wrapper-wikimania-scholar">
+</DIV></DIV>
+</DIV>		<H1 id="firstHeading" class="firstHeading">Timestamp-based concurrency control</H1>
+		<DIV id="bodyContent">
+			<H3 id="siteSub">From Wikipedia, the free encyclopedia</H3>
+			<DIV id="contentSub"></DIV>
+									<DIV id="jump-to-nav">Jump to: <A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#column-one">navigation</A>, <A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#searchInput">search</A></DIV>			<!-- start content -->
+			<TABLE class="metadata plainlinks ambox ambox-style" style="">
+<TBODY><TR>
+<TD class="mbox-image">
+<DIV style="width: 52px;"><IMG alt="" src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/40px-Edit-clear.svg.png" width="40" height="40"></DIV>
+</TD>
+<TD class="mbox-text" style="">This article <B>may require <A href="http://en.wikipedia.org/wiki/Wikipedia:Cleanup" title="Wikipedia:Cleanup">cleanup</A> to meet Wikipedia's <A href="http://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style" title="Wikipedia:Manual of Style">quality standards</A>.</B> Please <A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit" class="external text" rel="nofollow">improve this article</A> if you can. <SMALL><I>(October 2008)</I></SMALL></TD>
+</TR>
+</TBODY></TABLE>
+<TABLE class="metadata plainlinks ambox ambox-content" style="">
+<TBODY><TR>
+<TD class="mbox-image">
+<DIV style="width: 52px;"><IMG alt="" src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/50px-Question_book-new.svg.png" width="50" height="39"></DIV>
+</TD>
+<TD class="mbox-text" style="">This article <B>does not <A href="http://en.wikipedia.org/wiki/Wikipedia:Citing_sources" title="Wikipedia:Citing sources">cite</A> any <A href="http://en.wikipedia.org/wiki/Wikipedia:Verifiability" title="Wikipedia:Verifiability">references or sources</A></B>.<BR>
+<SMALL>Please help <A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit" class="external text" rel="nofollow">improve this article</A> by adding citations to <A href="http://en.wikipedia.org/wiki/Wikipedia:Reliable_sources" title="Wikipedia:Reliable sources" class="mw-redirect">reliable sources</A>. Unsourced material may be <A href="http://en.wikipedia.org/wiki/Template:Citation_needed" title="Template:Citation needed">challenged</A> and <A href="http://en.wikipedia.org/wiki/Wikipedia:Verifiability#Burden_of_evidence" title="Wikipedia:Verifiability">removed</A>. <I>(June 2007)</I></SMALL></TD>
+</TR>
+</TBODY></TABLE>
+<P>In <A href="http://en.wikipedia.org/wiki/Computer_science" title="Computer science">computer science</A>, in the field of <A href="http://en.wikipedia.org/wiki/Database" title="Database">databases</A>, <B>timestamp-based concurrency control</B> is a <A href="http://en.wikipedia.org/wiki/Non-lock_concurrency_control" title="Non-lock concurrency control">non-lock concurrency control</A> method, used in <A href="http://en.wikipedia.org/wiki/Relational_database" title="Relational database">relational databases</A> to safely handle transactions, using timestamps.</P>
+<TABLE id="toc" class="toc">
+<TBODY><TR>
+<TD>
+<DIV id="toctitle">
+<H2>Contents</H2>
+ <SPAN class="toctoggle">[<A id="togglelink" class="internal" href="javascript:toggleToc()">hide</A>]</SPAN></DIV>
+<UL>
+<LI class="toclevel-1 tocsection-1"><A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#Operation"><SPAN class="tocnumber">1</SPAN> <SPAN class="toctext">Operation</SPAN></A>
+<UL>
+<LI class="toclevel-2 tocsection-2"><A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#Assumptions"><SPAN class="tocnumber">1.1</SPAN> <SPAN class="toctext">Assumptions</SPAN></A></LI>
+<LI class="toclevel-2 tocsection-3"><A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#Formal"><SPAN class="tocnumber">1.2</SPAN> <SPAN class="toctext">Formal</SPAN></A></LI>
+<LI class="toclevel-2 tocsection-4"><A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#Informal"><SPAN class="tocnumber">1.3</SPAN> <SPAN class="toctext">Informal</SPAN></A></LI>
+</UL>
+</LI>
+<LI class="toclevel-1 tocsection-5"><A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#Recoverability"><SPAN class="tocnumber">2</SPAN> <SPAN class="toctext">Recoverability</SPAN></A></LI>
+<LI class="toclevel-1 tocsection-6"><A href="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/Timestamp-based concurrency control - Wikipedia, the free encyclopedia.html"><SPAN class="tocnumber">3</SPAN> <SPAN class="toctext">Implementation Issues</SPAN></A>
+<UL>
+<LI class="toclevel-2 tocsection-7"><A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#Timestamp_Resolution"><SPAN class="tocnumber">3.1</SPAN> <SPAN class="toctext">Timestamp Resolution</SPAN></A></LI>
+<LI class="toclevel-2 tocsection-8"><A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#Timestamp_Locking"><SPAN class="tocnumber">3.2</SPAN> <SPAN class="toctext">Timestamp Locking</SPAN></A></LI>
+</UL>
+</LI>
+<LI class="toclevel-1 tocsection-9"><A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control#See_also"><SPAN class="tocnumber">4</SPAN> <SPAN class="toctext">See also</SPAN></A></LI>
+</UL>
+</TD>
+</TR>
+</TBODY></TABLE>
+<SCRIPT type="text/javascript">
+//<![CDATA[
+if (window.showTocToggle) { var tocShowText = "show"; var tocHideText = "hide"; showTocToggle(); } 
+//]]>
+</SCRIPT>
+<H2><SPAN class="editsection">[<A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit&section=1" title="Edit section: Operation">edit</A>]</SPAN> <SPAN class="mw-headline" id="Operation">Operation</SPAN></H2>
+<H3><SPAN class="editsection">[<A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit&section=2" title="Edit section: Assumptions">edit</A>]</SPAN> <SPAN class="mw-headline" id="Assumptions">Assumptions</SPAN></H3>
+<UL>
+<LI>Every timestamp value is unique and accurately represents an instant in time. No two timestamps can be the same. A higher-valued timestamp occurs later in time than a lower-valued timestamp.</LI>
+</UL>
+<H3><SPAN class="editsection">[<A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit&section=3" title="Edit section: Formal">edit</A>]</SPAN> <SPAN class="mw-headline" id="Formal">Formal</SPAN></H3>
+<P>Each transaction (<SPAN class="texhtml"><I>T</I><SUB><I>i</I></SUB></SPAN>) is an ordered list of actions (<SPAN class="texhtml"><I>A</I><SUB><I>i</I><I>x</I></SUB></SPAN>). Before the transaction performs its first action (<SPAN class="texhtml"><I>A</I><SUB><I>i</I>1</SUB></SPAN>), it is marked with the current <A href="http://en.wikipedia.org/wiki/Timestamp" title="Timestamp">timestamp</A>, or any other <A href="http://en.wikipedia.org/wiki/Total_order" title="Total order">strictly totally ordered</A> sequence: <SPAN class="texhtml"><I>T</I><I>S</I>(<I>T</I><SUB><I>i</I></SUB>) = <I>N</I><I>O</I><I>W</I>()</SPAN>. Every transaction is also given an initially empty set of transactions upon which it depends, <SPAN class="texhtml"><I>D</I><I>E</I><I>P</I>(<I>T</I><SUB><I>i</I></SUB>) = []</SPAN>, and an initially empty set of old objects which it updated, <SPAN class="texhtml"><I>O</I><I>L</I><I>D</I>(<I>T</I><SUB><I>i</I></SUB>) = []</SPAN>.</P>
+<P>Each <A href="http://en.wikipedia.org/wiki/Object" title="Object">object</A> <SPAN class="texhtml">(<I>O</I><SUB><I>j</I></SUB>)</SPAN> in the database is given two timestamp fields which are not used other than for concurrency control: <SPAN class="texhtml"><I>R</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>)</SPAN> is the time at which the value of object was last used by a transaction, <SPAN class="texhtml"><I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>)</SPAN> is the time at which the value of the object was last updated by a transaction.</P>
+<P>For all <SPAN class="texhtml"><I>T</I><SUB><I>i</I></SUB></SPAN>:</P>
+<DL>
+<DD>For each action <SPAN class="texhtml"><I>A</I><SUB><I>i</I><I>x</I></SUB></SPAN>:
+<DL>
+<DD>If <SPAN class="texhtml"><I>A</I><SUB><I>i</I><I>x</I></SUB></SPAN> wishes to use the value of <SPAN class="texhtml"><I>O</I><SUB><I>j</I></SUB></SPAN>:
+<DL>
+<DD>If <SPAN class="texhtml"><I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>) &gt; <I>T</I><I>S</I>(<I>T</I><SUB><I>i</I></SUB>)</SPAN> then <B>abort</B> (a more recent thread has overwritten the value),</DD>
+<DD>Otherwise update the set of dependencies <SPAN class="texhtml"><I>D</I><I>E</I><I>P</I>(<I>T</I><SUB><I>i</I></SUB>).add(<I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>))</SPAN> and set <SPAN class="texhtml"><I>R</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>) = max(<I>R</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>),<I>T</I><I>S</I>(<I>T</I><SUB><I>i</I></SUB>))</SPAN>;</DD>
+</DL>
+</DD>
+<DD>If <SPAN class="texhtml"><I>A</I><SUB><I>i</I><I>x</I></SUB></SPAN> wishes to update the value of <SPAN class="texhtml"><I>O</I><SUB><I>j</I></SUB></SPAN>:
+<DL>
+<DD>If <SPAN class="texhtml"><I>R</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>) &gt; <I>T</I><I>S</I>(<I>T</I><SUB><I>i</I></SUB>)</SPAN> then <B>abort</B> (a more recent thread is already relying on the old value),</DD>
+<DD>If <SPAN class="texhtml"><I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>) &gt; <I>T</I><I>S</I>(<I>T</I><SUB><I>i</I></SUB>)</SPAN> then <B>skip</B> (the <A href="http://en.wikipedia.org/wiki/Thomas_Write_Rule" title="Thomas Write Rule" class="mw-redirect">Thomas Write Rule</A>),</DD>
+<DD>Otherwise store the previous values, <SPAN class="texhtml"><I>O</I><I>L</I><I>D</I>(<I>T</I><SUB><I>i</I></SUB>).add(<I>O</I><SUB><I>j</I></SUB>,<I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>))</SPAN>, set <SPAN class="texhtml"><I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>) = <I>T</I><I>S</I>(<I>T</I><SUB><I>i</I></SUB>)</SPAN>, and update the value of <SPAN class="texhtml"><I>O</I><SUB><I>j</I></SUB></SPAN>.</DD>
+</DL>
+</DD>
+</DL>
+</DD>
+<DD>While there is a transaction in <SPAN class="texhtml"><I>D</I><I>E</I><I>P</I>(<I>T</I><SUB><I>i</I></SUB>)</SPAN> that has not ended: <B>wait</B></DD>
+<DD>If there is a transaction in <SPAN class="texhtml"><I>D</I><I>E</I><I>P</I>(<I>T</I><SUB><I>i</I></SUB>)</SPAN> that aborted then <B>abort</B></DD>
+<DD>Otherwise: <B>commit</B>.</DD>
+</DL>
+<P>To <B>abort</B>:</P>
+<DL>
+<DD>For each <SPAN class="texhtml">(old<I>O</I><SUB><I>j</I></SUB>,old<I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>))</SPAN> in <SPAN class="texhtml"><I>O</I><I>L</I><I>D</I>(<I>T</I><SUB><I>i</I></SUB>)</SPAN>
+<DL>
+<DD>If <SPAN class="texhtml"><I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>)</SPAN> equals <SPAN class="texhtml"><I>T</I><I>S</I>(<I>T</I><SUB><I>i</I></SUB>)</SPAN> then restore <SPAN class="texhtml"><I>O</I><SUB><I>j</I></SUB> = old<I>O</I><SUB><I>j</I></SUB></SPAN> and <SPAN class="texhtml"><I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>) = old<I>W</I><I>T</I><I>S</I>(<I>O</I><SUB><I>j</I></SUB>)</SPAN></DD>
+</DL>
+</DD>
+</DL>
+<H3><SPAN class="editsection">[<A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit&section=4" title="Edit section: Informal">edit</A>]</SPAN> <SPAN class="mw-headline" id="Informal">Informal</SPAN></H3>
+<P>Whenever a transaction starts, it is given a timestamp. This is so we can tell which order that the transactions are supposed to be applied in. So given two transactions that affect the same object, the transaction that has the earlier timestamp is meant to be applied before the other one. However, if the wrong transaction is actually presented first, it is aborted and must be restarted.</P>
+<P>Every object in the database has a <B>read timestamp</B>, which is updated whenever the object's data is read, and a <B>write timestamp</B>, which is updated whenever the object's data is changed.</P>
+<P>If a transaction wants to read an object,</P>
+<UL>
+<LI>but the transaction started <I>before</I> the object's <B>write timestamp</B> it means that something changed the object's data after the transaction started. In this case, the transaction is cancelled and must be restarted.</LI>
+<LI>and the transaction started <I>after</I> the object's <B>write timestamp</B>, it means that it is <I>safe</I> to read the object. In this case, if the transaction timestamp is after the object's <B>read timestamp</B>, the read timestamp is set to the transaction timestamp.</LI>
+</UL>
+<P>If a transaction wants to write to an object,</P>
+<UL>
+<LI>but the transaction started <I>before</I> the object's <B>read timestamp</B> it means that something has had a look at the object, and we assume it took a copy of the object's data. So we can't write to the object as that would make any copied data invalid, so the transaction is aborted and must be restarted.</LI>
+<LI>and the transaction started <I>before</I> the object's <B>write timestamp</B> it means that something has changed the object since we started our transaction. In this case we use the <A href="http://en.wikipedia.org/wiki/Thomas_Write_Rule" title="Thomas Write Rule" class="mw-redirect">Thomas Write Rule</A> and simply skip our write operation and continue as normal; the transaction does not have to be aborted/restarted.</LI>
+<LI>otherwise, the transaction writes to the object, and the object's <B>write timestamp</B> is set to the transaction's timestamp.</LI>
+</UL>
+<H2><SPAN class="editsection">[<A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit&section=5" title="Edit section: Recoverability">edit</A>]</SPAN> <SPAN class="mw-headline" id="Recoverability">Recoverability</SPAN></H2>
+<P>For an explanation of the terms <B>recoverable</B> (RC), <B>avoids cascading aborts</B> (ACA) and <B>strict</B> (ST) see <A href="http://en.wikipedia.org/wiki/Schedule_(computer_science)" title="Schedule (computer science)">Schedule (computer science)</A>.</P>
+<P>Note that timestamp ordering in its basic form does not produce recoverable histories. Consider for example the following history with transactions <SPAN class="texhtml"><I>T</I><SUB>1</SUB></SPAN> and <SPAN class="texhtml"><I>T</I><SUB>2</SUB></SPAN>:</P>
+<DL>
+<DD><IMG class="tex" alt="W_1(x)\;R_2(x)\;W_2(y)\;C_2\;R_1(z)\;C_1" src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/00d2515efe3b9ecced512bac811314c4.png"></DD>
+</DL>
+<P>This could be produced by a TO scheduler, but is not recoverable, as <SPAN class="texhtml"><I>T</I><SUB>2</SUB></SPAN> commits even though having read from an uncomitted transaction. To make sure the it produces recoverable histories, a scheduler can keep a list of other transactions each transaction has <I>read from</I>, and not let a transaction commit before this list consisted of only committed transactions. To avoid cascading aborts, the scheduler could tag data written by uncommitted transactions as <I>dirty</I>, and never let a read operation commence on such a data item before it was untagged. To get a strict history, the scheduler should not allow any operations on dirty items.</P>
+<H2><SPAN class="editsection">[<A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit&section=6" title="Edit section: Implementation Issues">edit</A>]</SPAN> <SPAN class="mw-headline" id="Implementation_Issues">Implementation Issues</SPAN></H2>
+<H3><SPAN class="editsection">[<A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit&section=7" title="Edit section: Timestamp Resolution">edit</A>]</SPAN> <SPAN class="mw-headline" id="Timestamp_Resolution">Timestamp Resolution</SPAN></H3>
+<P>This is the minimum time elapsed between two adjacent timestamps. If the resolution of the timestamp is too large (coarse), the possibility of two or more timestamps being equal is increased and thus enabling some transactions to commit out of correct order. For example, assuming that we have a system that can create one hundred unique timestamps per second, and given two events that occur 2 milliseconds apart, they will probably be given the same timestamp even though they actually occurred at different times.</P>
+<H3><SPAN class="editsection">[<A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit&section=8" title="Edit section: Timestamp Locking">edit</A>]</SPAN> <SPAN class="mw-headline" id="Timestamp_Locking">Timestamp Locking</SPAN></H3>
+<P>Even though this technique is a non-locking one, in as much as the Object is not locked from concurrent access for the duration of a transaction, the act of recording each timestamp against the Object requires an extremely short duration lock on the Object or its proxy.</P>
+<H2><SPAN class="editsection">[<A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit&section=9" title="Edit section: See also">edit</A>]</SPAN> <SPAN class="mw-headline" id="See_also">See also</SPAN></H2>
+<UL>
+<LI><A href="http://en.wikipedia.org/wiki/Multiversion_concurrency_control" title="Multiversion concurrency control">Multiversion concurrency control</A></LI>
+</UL>
+
+
+<!-- 
+NewPP limit report
+Preprocessor node count: 777/1000000
+Post-expand include size: 8122/2048000 bytes
+Template argument size: 2548/2048000 bytes
+Expensive parser function count: 2/500
+-->
+
+<!-- Saved in parser cache with key enwiki:pcache:idhash:217351-0!1!0!default!!en!4 and timestamp 20100324113304 -->
+<DIV class="printfooter">
+Retrieved from "<A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control">http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control</A>"</DIV>
+			<DIV id="catlinks" class="catlinks"><DIV id="mw-normal-catlinks"><A href="http://en.wikipedia.org/wiki/Special:Categories" title="Special:Categories">Categories</A>: <SPAN dir="ltr"><A href="http://en.wikipedia.org/wiki/Category:Concurrency_control" title="Category:Concurrency control">Concurrency control</A></SPAN> | <SPAN dir="ltr"><A href="http://en.wikipedia.org/wiki/Category:Concurrency_control_algorithms" title="Category:Concurrency control algorithms">Concurrency control algorithms</A></SPAN> | <SPAN dir="ltr"><A href="http://en.wikipedia.org/wiki/Category:Transaction_processing" title="Category:Transaction processing">Transaction processing</A></SPAN></DIV><DIV id="mw-hidden-catlinks" class="mw-hidden-cats-hidden">Hidden categories: <SPAN dir="ltr"><A href="http://en.wikipedia.org/wiki/Category:Articles_needing_cleanup_from_October_2008" title="Category:Articles needing cleanup from October 2008">Articles needing cleanup from October 2008</A></SPAN> | <SPAN dir="ltr"><A href="http://en.wikipedia.org/wiki/Category:All_pages_needing_cleanup" title="Category:All pages needing cleanup">All pages needing cleanup</A></SPAN> | <SPAN dir="ltr"><A href="http://en.wikipedia.org/wiki/Category:Articles_lacking_sources_from_June_2007" title="Category:Articles lacking sources from June 2007">Articles lacking sources from June 2007</A></SPAN> | <SPAN dir="ltr"><A href="http://en.wikipedia.org/wiki/Category:All_articles_lacking_sources" title="Category:All articles lacking sources">All articles lacking sources</A></SPAN></DIV></DIV>			<!-- end content -->
+						<DIV class="visualClear"></DIV>
+		</DIV>
+	</DIV>
+		</DIV>
+		<DIV id="column-one">
+	<DIV id="p-cactions" class="portlet">
+		<H5>Views</H5>
+		<DIV class="pBody">
+			<UL lang="en" xml:lang="en">
+	
+				 <LI id="ca-nstab-main" class="selected"><A href="http://en.wikipedia.org/wiki/Timestamp-based_concurrency_control" title="View the content page [ctrl-alt-c]" accesskey="c">Article</A></LI>
+				 <LI id="ca-talk"><A href="http://en.wikipedia.org/wiki/Talk:Timestamp-based_concurrency_control" title="Discussion about the content page [ctrl-alt-t]" accesskey="t">Discussion</A></LI>
+				 <LI id="ca-edit"><A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=edit" title="You can edit this page. 
+Please use the preview button before saving. [ctrl-alt-e]" accesskey="e">Edit this page</A></LI>
+				 <LI id="ca-history"><A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&action=history" title="Past versions of this page [ctrl-alt-h]" accesskey="h">History</A></LI>			</UL>
+		</DIV>
+	</DIV>
+	<DIV class="portlet" id="p-personal">
+		<H5>Personal tools</H5>
+		<DIV class="pBody">
+			<UL lang="en" xml:lang="en">
+				<LI id="pt-optin-try"><A href="http://en.wikipedia.org/w/index.php?title=Special:UsabilityInitiativeOptIn&from=Timestamp-based_concurrency_control" title="Try out new features" class="no-text-transform">Try Beta</A></LI>
+				<LI id="pt-login"><A href="http://en.wikipedia.org/w/index.php?title=Special:UserLogin&returnto=Timestamp-based_concurrency_control" title="You are encouraged to log in; however, it is not mandatory. [ctrl-alt-o]" accesskey="o">Log in / create account</A></LI>
+			</UL>
+		</DIV>
+	</DIV>
+	<DIV class="portlet" id="p-logo">
+		<A style="background-image: url(http://upload.wikimedia.org/wikipedia/en/b/bc/Wiki.png);" href="http://en.wikipedia.org/wiki/Main_Page" title="Visit the main page"></A>
+	</DIV>
+	<SCRIPT type="text/javascript"> if (window.isMSIE55) fixalpha(); </SCRIPT>
+	<DIV class="generated-sidebar portlet" id="p-navigation">
+		<H5 lang="en" xml:lang="en">Navigation</H5>
+		<DIV class="pBody">
+			<UL>
+				<LI id="n-mainpage-description"><A href="http://en.wikipedia.org/wiki/Main_Page" title="Visit the main page [ctrl-alt-z]" accesskey="z">Main page</A></LI>
+				<LI id="n-contents"><A href="http://en.wikipedia.org/wiki/Portal:Contents" title="Guides to browsing Wikipedia">Contents</A></LI>
+				<LI id="n-featuredcontent"><A href="http://en.wikipedia.org/wiki/Portal:Featured_content" title="Featured content &mdash; the best of Wikipedia">Featured content</A></LI>
+				<LI id="n-currentevents"><A href="http://en.wikipedia.org/wiki/Portal:Current_events" title="Find background information on current events">Current events</A></LI>
+				<LI id="n-randompage"><A href="http://en.wikipedia.org/wiki/Special:Random" title="Load a random article [ctrl-alt-x]" accesskey="x">Random article</A></LI>
+			</UL>
+		</DIV>
+	</DIV>
+	<DIV id="p-search" class="portlet">
+		<H5 lang="en" xml:lang="en"><LABEL for="searchInput">Search</LABEL></H5>
+		<DIV id="searchBody" class="pBody">
+			<FORM action="http://en.wikipedia.org/w/index.php" id="searchform">
+				<INPUT type="hidden" name="title" value="Special:Search">
+				<INPUT id="searchInput" title="Search Wikipedia" accesskey="f" value="" name="search" autocomplete="off">
+				<INPUT type="submit" name="go" class="searchButton" id="searchGoButton" value="Go" title="Go to a page with this exact name if one exists">&nbsp;
+				<INPUT type="submit" name="fulltext" class="searchButton" id="mw-searchButton" value="Search" title="Search Wikipedia for this text">
+			</FORM>
+		</DIV>
+	</DIV>
+	<DIV class="generated-sidebar portlet" id="p-interaction">
+		<H5 lang="en" xml:lang="en">Interaction</H5>
+		<DIV class="pBody">
+			<UL>
+				<LI id="n-aboutsite"><A href="http://en.wikipedia.org/wiki/Wikipedia:About" title="Find out about Wikipedia">About Wikipedia</A></LI>
+				<LI id="n-portal"><A href="http://en.wikipedia.org/wiki/Wikipedia:Community_portal" title="About the project, what you can do, where to find things">Community portal</A></LI>
+				<LI id="n-recentchanges"><A href="http://en.wikipedia.org/wiki/Special:RecentChanges" title="The list of recent changes in the wiki [ctrl-alt-r]" accesskey="r">Recent changes</A></LI>
+				<LI id="n-contact"><A href="http://en.wikipedia.org/wiki/Wikipedia:Contact_us" title="How to contact Wikipedia">Contact Wikipedia</A></LI>
+				<LI id="n-sitesupport"><A href="http://wikimediafoundation.org/wiki/Support_Wikipedia/en" title="Support us">Donate to Wikipedia</A></LI>
+				<LI id="n-help"><A href="http://en.wikipedia.org/wiki/Help:Contents" title="Guidance on how to use and edit Wikipedia">Help</A></LI>
+			</UL>
+		</DIV>
+	</DIV>
+	<DIV class="portlet" id="p-tb">
+		<H5 lang="en" xml:lang="en">Toolbox</H5>
+		<DIV class="pBody">
+			<UL>
+				<LI id="t-whatlinkshere"><A href="http://en.wikipedia.org/wiki/Special:WhatLinksHere/Timestamp-based_concurrency_control" title="List of all English Wikipedia pages containing links to this page [ctrl-alt-j]" accesskey="j">What links here</A></LI>
+				<LI id="t-recentchangeslinked"><A href="http://en.wikipedia.org/wiki/Special:RecentChangesLinked/Timestamp-based_concurrency_control" title="Recent changes in pages linked from this page [ctrl-alt-k]" accesskey="k">Related changes</A></LI>
+<LI id="t-upload"><A href="http://en.wikipedia.org/wiki/Wikipedia:Upload" title="Upload files [ctrl-alt-u]" accesskey="u">Upload file</A></LI>
+<LI id="t-specialpages"><A href="http://en.wikipedia.org/wiki/Special:SpecialPages" title="List of all special pages [ctrl-alt-q]" accesskey="q">Special pages</A></LI>
+				<LI id="t-print"><A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&printable=yes" rel="alternate" title="Printable version of this page [ctrl-alt-p]" accesskey="p">Printable version</A></LI>				<LI id="t-permalink"><A href="http://en.wikipedia.org/w/index.php?title=Timestamp-based_concurrency_control&oldid=341485279" title="Permanent link to this revision of the page">Permanent link</A></LI><LI id="t-cite"><A href="http://en.wikipedia.org/w/index.php?title=Special:Cite&page=Timestamp-based_concurrency_control&id=341485279" title="Information on how to cite this page">Cite this page</A></LI>			</UL>
+		</DIV>
+	</DIV>
+	<DIV id="p-lang" class="portlet">
+		<H5 lang="en" xml:lang="en">Languages</H5>
+		<DIV class="pBody">
+			<UL>
+				<LI class="interwiki-de"><A href="http://de.wikipedia.org/wiki/Zeitstempelverfahren">Deutsch</A></LI>
+				<LI class="interwiki-ja"><A href="http://ja.wikipedia.org/wiki/%E6%99%82%E5%88%BB%E5%8D%B0%E3%83%AD%E3%83%83%E3%82%AF">日本語</A></LI>
+			</UL>
+		</DIV>
+	</DIV>
+		</DIV><!-- end of the left (by default at least) column -->
+			<DIV class="visualClear"></DIV>
+			<DIV id="footer">
+				<DIV id="f-poweredbyico"><A href="http://www.mediawiki.org/"><IMG src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/poweredby_mediawiki_88x31.png" height="31" width="88" alt="Powered by MediaWiki"></A></DIV>
+				<DIV id="f-copyrightico"><A href="http://wikimediafoundation.org/"><IMG src="./Timestamp-based concurrency control - Wikipedia, the free encyclopedia_files/wikimedia-button.png" width="88" height="31" alt="Wikimedia Foundation"></A></DIV>
+			<UL id="f-list">
+					<LI id="lastmod"> This page was last modified on 2 February 2010 at 15:12.<BR></LI>
+					<LI id="copyright">Text is available under the <A rel="license" href="http://en.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">Creative Commons Attribution-ShareAlike License</A><A rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/" style="display:none;"></A>;
+additional terms may apply.
+See <A href="http://wikimediafoundation.org/wiki/Terms_of_Use">Terms of Use</A> for details.<BR>
+Wikipedia® is a registered trademark of the <A href="http://www.wikimediafoundation.org/">Wikimedia Foundation, Inc.</A>, a non-profit organization.<BR></LI><LI class="noprint"><A class="internal" href="http://en.wikipedia.org/wiki/Wikipedia:Contact_us">Contact us</A></LI>
+					<LI id="privacy"><A href="http://wikimediafoundation.org/wiki/Privacy_policy" title="wikimedia:Privacy policy">Privacy policy</A></LI>
+					<LI id="about"><A href="http://en.wikipedia.org/wiki/Wikipedia:About" title="Wikipedia:About">About Wikipedia</A></LI>
+					<LI id="disclaimer"><A href="http://en.wikipedia.org/wiki/Wikipedia:General_disclaimer" title="Wikipedia:General disclaimer">Disclaimers</A></LI>
+			</UL>
+		</DIV>
+</DIV>
+
+<SCRIPT type="text/javascript">if (window.runOnloadHook) runOnloadHook();</SCRIPT>
+<!-- Served by srv246 in 0.442 secs. -->
+<DIV style="z-index: -1; position:absolute; top:0px; left: 0px; width: 100%; height: 2180px;"></DIV></BODY></HTML>
