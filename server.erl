@@ -10,6 +10,12 @@
 
 -export([start/0]).
 
+-record(db,
+  {account,
+    value = 0,
+    writeTime = {0,0,0},
+    readTime = {0,0,0}}).
+
 %%%%%%%%%%%%%%%%%%%%%%% STARTING SERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 start() ->
   register(transaction_server, spawn(fun() ->
@@ -20,7 +26,12 @@ start() ->
 
 initialize() ->
   process_flag(trap_exit, true),
-  Initialvals = [{a,0},{b,0},{c,0},{d,0}], %% All variables are set to 0
+  Initialvals = [
+    #db{account=a},
+    #db{account=b},
+    #db{account=c},
+    #db{account=d}
+  ],
   ServerPid = self(),
   StorePid = spawn_link(fun() -> store_loop(ServerPid,Initialvals) end),
   server_loop([],StorePid).
@@ -95,11 +106,11 @@ remove_client(C, [H|T]) -> [H|remove_client(C,T)].
 all_gone([]) -> true;
 all_gone(_) -> false.
 
-readDB(Account, [{Account, Value} | _]) -> Value;
+readDB(Account, [Acc = #db{account=Account} | _]) -> Acc#db.value;
 readDB(Account, [ _ | RestOfDB]) -> readDB(Account, RestOfDB).
 
 
-updateDB(Account, Value, [{Account, _} | RestOfDatabase]) ->
-  [{Account, Value} | RestOfDatabase];
+updateDB(Account, Value, [Acc = #db{account=Account} | RestOfDatabase]) ->
+  [ Acc#db{value = Value} | RestOfDatabase];
 updateDB(Account, Value, [WrongAccount | RestOfDatabase]) ->
   [WrongAccount | updateDB(Account, Value, RestOfDatabase)].
