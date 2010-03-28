@@ -20,49 +20,49 @@
 -export([parse/1]).
 
 %% main function
-parse(Str) -> 
-    case parse_expression(skip_to_prompt(Str),{}) of
-	{error, Why} -> throw(Why);
-	Com -> Com
-    end.
+parse(Str) ->
+  case parse_expression(skip_to_prompt(Str),{}) of
+    {error, Why} -> throw(Why);
+    Com -> Com
+  end.
 
 %% function to parse expression
 parse_expression(T,{}) ->
-    case get_token(T) of 
-	{token_action, Action, Tail} -> parse_expression(Tail,{Action});
-	_ -> {error, "Expected read, write, run or reset command"}
-    end;
+  case get_token(T) of
+    {token_action, Action, Tail} -> parse_expression(Tail,{Action});
+    _ -> {error, "Expected read, write, run or reset command"}
+  end;
 parse_expression(T,{run}) ->
-    case get_token(T) of 
-	{token_end} -> {run};
-	_ -> {error, "Command run takes no argument"}
-    end;
+  case get_token(T) of
+    {token_end} -> {run};
+    _ -> {error, "Command run takes no argument"}
+  end;
 parse_expression(T,{reset}) ->
-    case get_token(T) of 
-	{token_end} -> {reset};
-	_ -> {error, "Command reset takes no argument"}
-    end;
+  case get_token(T) of
+    {token_end} -> {reset};
+    _ -> {error, "Command reset takes no argument"}
+  end;
 parse_expression(T,{Action}) ->
-    case get_token(T) of 
-	{token_name, Name, Tail} -> parse_expression(Tail, {Action, Name});
-	_ -> {error, "Expected variable name {a,b,c,d}"}
-    end;
-parse_expression(T,{read, Name}) -> 
-    case get_token(T) of 
-	{token_end} -> {read,Name};
-	_ -> {error, "Wrong number of arguments"}
-    end;
+  case get_token(T) of
+    {token_name, Name, Tail} -> parse_expression(Tail, {Action, Name});
+    _ -> {error, "Expected variable name {a,b,c,d}"}
+  end;
+parse_expression(T,{read, Name}) ->
+  case get_token(T) of
+    {token_end} -> {read,Name};
+    _ -> {error, "Wrong number of arguments"}
+  end;
 parse_expression(T,{write, Name}) ->
-    case get_token(T) of 
-	{token_end} -> {write,Name,0};
-	{token_value, Val, Tail} -> parse_expression(Tail, {write,Name,Val});
-	_ -> {error, "Expected number"}
-    end;
+  case get_token(T) of
+    {token_end} -> {write,Name,0};
+    {token_value, Val, Tail} -> parse_expression(Tail, {write,Name,Val});
+    _ -> {error, "Expected number"}
+  end;
 parse_expression(T,{write,Name,Val}) ->
-    case get_token(T) of
-	{token_end} -> {write,Name,Val};
-	_ -> {error, "Wrong number of arguments"}
-    end. 
+  case get_token(T) of
+    {token_end} -> {write,Name,Val};
+    _ -> {error, "Wrong number of arguments"}
+  end.
 
 %% function to read the tokens
 get_token(" " ++ T) -> get_token(T);
@@ -80,9 +80,9 @@ get_token(T) -> read_number(0,T).
 read_number(Val, []) -> {token_value, Val, []};
 read_number(Val, " " ++ T) -> {token_value, Val, T};
 read_number(Val,[H|T]) ->
-    if (H < 48) or (H > 57) -> {error, "Unknown entry"};
+  if (H < 48) or (H > 57) -> {error, "Unknown entry"};
     true -> read_number(Val*10+H-48,T)
-    end.
+  end.
 
 %% Low level function which removes the front characters up-to a the prompt
 skip_to_prompt(">" ++ T) -> T;
