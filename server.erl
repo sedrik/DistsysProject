@@ -49,6 +49,12 @@ server_loop(ClientList,StorePid) ->
       server_loop(ClientList,StorePid);
     {action, Client, Act} ->
       io:format("Received~p from client~p.~n", [Act, Client]),
+
+      %TODO: Add transaction management here
+
+      %Do the action
+      StorePid ! {Act, self()},
+      StorePid ! {print, self()},
       server_loop(ClientList,StorePid)
   after 50000 ->
       case all_gone(ClientList) of
@@ -62,7 +68,18 @@ store_loop(ServerPid, Database) ->
   receive
     {print, ServerPid} ->
       io:format("Database status:~n~p.~n",[Database]),
-      store_loop(ServerPid,Database)
+      store_loop(ServerPid,Database);
+    {{write, Account, Value}, ServerPid} ->
+      io:format("Storing new value ~p in account ~p",[Value, Account]),
+      NewDB = updateDB(Account, Value, Database),
+      io:format(".. Stored!~n"),
+      store_loop(ServerPid, NewDB);
+    {{read, Account}, ServerPid} ->
+      Value = readDB(Account, Database),
+      io:format("Value of ~p is ~p~n", [Account, Value]),
+      store_loop(ServerPid, Database);
+    {Action, ServerPid} ->
+      io:format("Got Action ~p from server.~n", [Action])
   end.
 %%%%%%%%%%%%%%%%%%%%%%% ACTIVE SERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -77,3 +94,12 @@ remove_client(C, [H|T]) -> [H|remove_client(C,T)].
 
 all_gone([]) -> true;
 all_gone(_) -> false.
+
+readDB(Account, [{Account, Value} | _]) -> Value;
+readDB(Account, [ _ | RestOfDB]) -> readDB(Account, RestOfDB).
+
+
+updateDB(Account, Value, [{Account, _} | RestOfDatabase]) ->
+  [{Account, Value} | RestOfDatabase];
+updateDB(Account, Value, [WrongAccount | RestOfDatabase]) ->
+  [WrongAccount | updateDB(Account, Value, RestOfDatabase)].
