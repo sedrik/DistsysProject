@@ -16,8 +16,6 @@
         writeTime = {0,0,0},
         readTime = {0,0,0}}).
 
-
-
 -record(transactionData,
     {timeStamp,
         actions = [],
@@ -28,6 +26,11 @@
     {transactions = [], %list of transactionData tuples
         storePid,
         serverPid}).
+
+-record(storeState,
+    {serverPid,
+        transactionPid,
+        database=[]}).%[db]
 
 -record(serverState,
     {clientList = [],
@@ -44,16 +47,26 @@ start() ->
 
 initialize() ->
     process_flag(trap_exit, true),
-    Initialvals = [
-        #db{account=a},
-        #db{account=b},
-        #db{account=c},
-        #db{account=d}
-    ],
+
     ServerPid = self(),
-    StorePid = spawn_link(fun() -> store_loop(ServerPid,Initialvals) end),
-    TransactionPid = spawn_link(fun() -> transaction_loop(
-                    #transactionState{serverPid = ServerPid, storePid = StorePid}) end),
+
+    %Prepare StoreState.
+    StoreState = #storeState{serverPid = ServerPid,
+        database=[#db{account=a},
+            #db{account=b},
+            #db{account=c},
+            #db{account=d}]},
+    StorePid = spawn_link(fun() -> store_init(StoreState) end),
+
+    %Prepare TransactionState
+    TransactionState = #transactionState{
+        serverPid = ServerPid,
+        storePid = StorePid},
+    TransactionPid = spawn_link(fun() -> transaction_loop(TransactionState) end),
+
+    %Tell the store who the transaction server is.
+    StorePid ! {transactionPid, {TransactionPid, self()}},
+
     server_loop(#serverState{storePid = StorePid, transactionPid = TransactionPid}).
 %%%%%%%%%%%%%%%%%%%%%%% STARTING SERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -132,52 +145,140 @@ server_loop(State) ->
     end.
 
 %% - The values are maintained here
-store_loop(ServerPid, Database) ->
+store_init(StoreState) ->
+    ServerPid = StoreState#storeState.serverPid,
+    receive
+        {transactionPid, {TransactionPid, ServerPid}} ->
+            %store TransactionPid in state
+            NewStoreState = StoreState#storeState{transactionPid =
+                TransactionPid},
+
+            store_loop(NewStoreState)
+    end.
+
+store_loop(StoreState) ->
+    ServerPid = StoreState#storeState.serverPid,
+    TransactionPid = StoreState#storeState.transactionPid,
     receive
         {print, ServerPid} ->
-            io:format("Database status:~n~p.~n",[Database]),
-            store_loop(ServerPid,Database);
+            io:format("Database status:~n~p.~n",[StoreState#storeState.database]),
+            store_loop(StoreState);
         {rollback, {TimeStamp, OldData}} ->
-            %TODO PERFORM COMPLETE ROLLBACK ATOMICLY
-            store_loop(ServerPid, NewDB);
-        {{write, Account, Value}, TransactionStart, ServerPid} ->
-            %TODO !!
-            %TODO Add a check that the asking client is transaction server!!
-            store_loop(ServerPid, NewDB);
-        {{read, Account}, TransactionStart, ServerPid} ->
-            %TODO !!
-            %TODO Add a check that the asking client is transaction server!!
-            store_loop(ServerPid, NewDB)
+            % PERFORM COMPLETE ROLLBACK ATOMICLY
+            NewDB = lists:foldl(
+                fun({Account, Value, WriteTimeStamp}, DataBase) ->
+                        case WriteTimeStamp == TimeStamp of
+                            true ->
+                                TempDB = updateDB(Account, Value, DataBase),
+                                setAccountStamp(write, WriteTimeStamp, Account, TempDB);
+                            false ->
+                                DataBase
+                        end
+                end, StoreState#storeState.database, OldData),
+
+            NewStoreState = StoreState#storeState{database=NewDB},
+            store_loop(NewStoreState);
+        {{write, Account, Value}, TimeStamp, TransactionPid} ->
+            TempDB = updateDB(Account, Value, StoreState#storeState.database),
+            DB = setAccountStamp(write, TimeStamp, Account, TempDB),
+
+            NewState = StoreState#storeState{database=DB},
+            store_loop(NewState);
+        {{read, Account}, TimeStamp, TransactionPid} ->
+
+            %when setting readtimestamp we need to do max of the old value and
+            %the new values timestamps
+            Data = lists:keyfind(Account, #db.account,
+                StoreState#storeState.database),
+            NewDB = setAccountStamp(read, erlang:max(Data#db.readTime,
+                    TimeStamp), Account, StoreState#storeState.database),
+
+            %respond with value
+            %Value = readDB(Account, StoreState#storeState.database),
+            %somePid ! {response, Value}
+
+            NewState = StoreState#storeState{database=NewDB},
+            store_loop(NewState);
+        {commited, {TimeStamp}} ->
+            %if this is a "clean commit" we reset the writeStamp to avoid
+            %getting our timestamps into a depenecy list, if we have already
+            %been placed in a list the code inside of the transaction server
+            %will solve that for us.
+            NewDB = lists:map(
+                fun(DB) ->
+                        case DB#db.writeTime == TimeStamp of
+                            true ->
+                                DB#db{readTime = {0,0,0}};
+                            false ->
+                                DB
+                        end
+                end, StoreState#storeState.database),
+
+            StoreState#storeState.transactionPid ! {response_commited, {ok}},
+
+            NewState = StoreState#storeState{database=NewDB},
+            store_loop(NewState);
+        {requestTimeStamp, {Type, Account}, TransactionPid} ->
+            TransactionPid ! {response, {timeStamp, getAccountStamp(Type, Account,
+                        StoreState#storeState.database)}},
+            store_loop(StoreState)
     end.
 
 %% Process keeping track of the transactions.
 transaction_loop(State) ->
     ServerPid = State#transactionState.serverPid,
+
+    RequestStamp = fun (Type, Account) ->
+            State#transactionState.storePid ! {requestTimeStamp, {Type, Account}, self()},
+            receive
+                {response, {timeStamp, Stamp}} -> Stamp
+            end
+    end,
+
+    RequestData = fun (Account) ->
+            State#transactionState.storePid ! {requestData, {Account}, self()},
+            receive
+                {response, {data, Data}} -> {Data#db.account, Data#db.value, Data#db.writeTime}
+            end
+    end,
+
     receive
         {new, {ServerPid, TimeStamp}} ->
             %create a new transaction and add it to the list of transactions.
             NewTransactionsData = #transactionData{timeStamp=TimeStamp},
             NewTransactions = [ NewTransactionsData | State#transactionState.transactions],
-
             EndState = State#transactionState{transactions = NewTransactions},
             transaction_loop(EndState);
         {is_done, {ServerPid, TimeStamp}} ->
             %get correct transactionData
-            EndState = case getTransactionData(TimeStamp, State#transactionState.transactions) of
+            EndState =
+            case getTransactionData(TimeStamp, State#transactionState.transactions) of
                 aborted ->
-                %if we can not find TimeStamp it has been aborted! reply aborted
+                    %if we can not find TimeStamp it has been aborted! reply aborted
                     ServerPid ! {transaction_done, {aborted, TimeStamp}},
                     State;
                 TransactionData ->
                     %if actions and dependencies is empty then we are done
-                    case TransactionData#transactionData.actions == [] andalso
-                        TransactionData#transactionData.dependencies == [] of
-                        true ->
-                            %Commit
-                            %TODO remove TimeStamp from all transactions
-                            %dependencies in transactionstate and update State
+                    case TransactionData#transactionData.actions == [] andalso TransactionData#transactionData.dependencies == [] of
+                        true -> %Commit
+                            %Tell the database that the we are commited
+                            State#transactionState.storePid ! {commited, {TimeStamp}},
+                            receive
+                                {response_commited, {ok}} -> ok
+                            end,
+
+                            %Remove myself from all lists
+                            TempTransactions = lists:delete(TransactionData, State#transactionState.transactions),
+                            NewTransactions = lists:map(fun(TransData) ->
+                                        NewDep = lists:delete(TimeStamp, TransData#transactionData.dependencies),
+                                        TransData#transactionData{dependencies = NewDep}
+                                end,
+                                TempTransactions),
+
                             ServerPid ! {transaction_done, {committed, TimeStamp}},
-                            State;
+
+                            %return new state
+                            State#transactionState{transactions=NewTransactions};
                         false ->
                             %Need to wait for dependencies so that they do not abort
                             %perform the check again by messaging ourself.
@@ -187,35 +288,64 @@ transaction_loop(State) ->
             end,
             transaction_loop(EndState);
         {new_action, {ServerPid, TimeStamp, {write, Account, Value}}} ->
-            %TODO implement
-            % NewDB = case TransactionStart < getAccountStamp(write, Account, Database) of
-            %     true -> Database; %Skip the write
-            %     false ->
-            %         case TransactionStart < getAccountStamp(read, Account, Database) of
-            %             true ->
-            %                 ServerPid ! {abortTransaction, TransactionStart},
-            %                 Database;
-            %             false ->
-            %                 io:format("Storing new value ~p in account ~p",[Value, Account]),
-            %                 TempDB = updateDB(Account, Value, Database),
-            %                 DB = setAccountStamp(write, TransactionStart, Account, TempDB),
-            %                 io:format(".. Stored!~n"),
-            %                 DB
-            %         end
-            % end,
-            transaction_loop(State);
+            %implement
+
+            NewState = case TimeStamp < RequestStamp(read, Account) of
+                true ->
+                    self() ! {abort, {ServerPid, TimeStamp}},
+                    State;
+                false ->
+                    WriteStamp = RequestStamp(write, Account),
+                    if TimeStamp >= WriteStamp ->
+                            %store old value in OldData
+                            Data = RequestData(Account),
+
+                            TransactionData = getTransactionData(TimeStamp,
+                                State#transactionState.transactions),
+                            NewOldValues = [Data |
+                                TransactionData#transactionState.oldValues],
+
+                            NewTransactionData =
+                            TransactionData#transactionData{oldValues=NewOldValues},
+
+                            NewTransactions = lists:keystore(TimeStamp,
+                                #transactionData.timeStamp,
+                                State#transactionState.transactions,
+                                NewTransactionData),
+
+                            %call to database to store the new value.
+                            State#transactionState.storePid ! {{write,
+                                    Account, Value}, TimeStamp, self()},
+
+                            %New state
+                            State#transactionState{transactions=NewTransactions}
+                    end
+            end,
+            transaction_loop(NewState);
         {new_action, {ServerPid, TimeStamp, {read, Account}}} ->
-            %TODO implement
-            %NewDB = case TransactionStart < getAccountStamp(write, Account, Database) of
-            %    true ->
-            %        ServerPid ! {abortTransaction, TransactionStart},
-            %        Database;
-            %    false ->
-            %        Value = readDB(Account, Database),
-            %        io:format("Value of ~p is ~p~n", [Account, Value]),
-            %        %set readTimestamp
-            %        setAccountStamp(read, TransactionStart, Account, Database)
-            %end,
+            WriteStamp = RequestStamp(write, Account),
+            case TimeStamp < WriteStamp of
+                true ->
+                    self() ! {abort, {ServerPid, TimeStamp}};
+                false ->
+                    %Updates the dependencies list
+                    TransactionData = getTransactionData(TimeStamp,
+                        State#transactionState.transactions),
+                    NewDependencies = [WriteStamp |
+                        TransactionData#transactionState.dependencies],
+
+                    NewTransactionData =
+                    TransactionData#transactionData{dependencies=NewDependencies},
+
+                    NewTransactions = lists:keystore(TimeStamp,
+                        #transactionData.timeStamp,
+                        State#transactionState.transactions,
+                        NewTransactionData),
+
+                    %Tell db to read the value
+                    State#transactionState.storePid ! {{read, Account}, TimeStamp, self()}
+                    %Update
+            end,
             transaction_loop(State);
         {abort, {ServerPid, TimeStamp}} ->
             EndState = case getTransactionData(TimeStamp, State#transactionState.transactions) of
@@ -226,7 +356,7 @@ transaction_loop(State) ->
                     State#transactionState.storePid ! {rollback, {TimeStamp,
                             TransactionData#transactionData.oldValues}},
 
-                    %Tell everyone else in dependecies to abort
+                    %Tell everyone else in dependencies to abort
                     lists:map(fun(DependentTimeStamp) ->
                                 self() ! {abort, {ServerPid, DependentTimeStamp}}
                         end,
@@ -291,19 +421,19 @@ updateDB(Account, Value, [WrongAccount | RestOfDatabase]) ->
 %    {value, ClientTuple, TempCL} = lists:keytake(Client, #cl.cpid, ClientList),
 %    [ClientTuple#cl{transactionStatus = Value} | TempCL].
 %
-%getAccountStamp(write, Account, Database) ->
-%    Temp = lists:keyfind(Account, #db.account, Database),
-%    Temp#db.writeTime;
-%getAccountStamp(read, Account, Database) ->
-%    Temp = lists:keyfind(Account, #db.account, Database),
-%    Temp#db.readTime.
-%
-%setAccountStamp(read, TransactionStart, Account, Database) ->
-%    {value, Temp, TempDB} = lists:keytake(Account, #db.account, Database),
-%    [Temp#db{readTime = erlang:max(Temp#db.readTime, TransactionStart)} | TempDB];
-%setAccountStamp(write, TransactionStart, Account, Database) ->
-%    {value, Temp, TempDB} = lists:keytake(Account, #db.account, Database),
-%    [Temp#db{writeTime = TransactionStart} | TempDB].
+getAccountStamp(write, Account, Database) ->
+    Temp = lists:keyfind(Account, #db.account, Database),
+    Temp#db.writeTime;
+getAccountStamp(read, Account, Database) ->
+    Temp = lists:keyfind(Account, #db.account, Database),
+    Temp#db.readTime.
+
+setAccountStamp(read, TimeStamp, Account, Database) ->
+    {value, Temp, TempDB} = lists:keytake(Account, #db.account, Database),
+    [Temp#db{readTime = erlang:max(Temp#db.readTime, TimeStamp)} | TempDB];
+setAccountStamp(write, TimeStamp, Account, Database) ->
+    {value, Temp, TempDB} = lists:keytake(Account, #db.account, Database),
+    [Temp#db{writeTime = TimeStamp} | TempDB].
 %
 %findClient(TransactionStart, ClientList) ->
 %    ClientTuple = lists:keyfind(TransactionStart, #cl.transactionStart, ClientList),
