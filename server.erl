@@ -303,7 +303,7 @@ transaction_loop(State) ->
                             TransactionData = getTransactionData(TimeStamp,
                                 State#transactionState.transactions),
                             NewOldValues = [Data |
-                                TransactionData#transactionState.oldValues],
+                                TransactionData#transactionData.oldValues],
 
                             NewTransactionData =
                             TransactionData#transactionData{oldValues=NewOldValues},
@@ -324,15 +324,16 @@ transaction_loop(State) ->
             transaction_loop(NewState);
         {new_action, {ServerPid, TimeStamp, {read, Account}}} ->
             WriteStamp = RequestStamp(write, Account),
-            case TimeStamp < WriteStamp of
+            NewState = case TimeStamp < WriteStamp of
                 true ->
-                    self() ! {abort, {ServerPid, TimeStamp}};
+                    self() ! {abort, {ServerPid, TimeStamp}},
+                    State;
                 false ->
                     %Updates the dependencies list
                     TransactionData = getTransactionData(TimeStamp,
                         State#transactionState.transactions),
                     NewDependencies = [WriteStamp |
-                        TransactionData#transactionState.dependencies],
+                        TransactionData#transactionData.dependencies],
 
                     NewTransactionData =
                     TransactionData#transactionData{dependencies=NewDependencies},
@@ -343,10 +344,12 @@ transaction_loop(State) ->
                         NewTransactionData),
 
                     %Tell db to read the value
-                    State#transactionState.storePid ! {{read, Account}, TimeStamp, self()}
-                    %Update
+                    State#transactionState.storePid ! {{read, Account}, TimeStamp, self()},
+
+                    %New State
+                    State#transactionState{transactions=NewTransactions}
             end,
-            transaction_loop(State);
+            transaction_loop(NewState);
         {abort, {ServerPid, TimeStamp}} ->
             EndState = case getTransactionData(TimeStamp, State#transactionState.transactions) of
                 aborted ->
@@ -405,8 +408,8 @@ getClient(TS, [_|T]) -> getTimeStamp(TS,T).
 all_gone([]) -> true;
 all_gone(_) -> false.
 
-readDB(Account, [Acc = #db{account=Account} | _]) -> Acc#db.value;
-readDB(Account, [ _ | RestOfDB]) -> readDB(Account, RestOfDB).
+%readDB(Account, [Acc = #db{account=Account} | _]) -> Acc#db.value;
+%readDB(Account, [ _ | RestOfDB]) -> readDB(Account, RestOfDB).
 
 updateDB(Account, Value, [Acc = #db{account=Account} | RestOfDatabase]) ->
     [ Acc#db{value = Value} | RestOfDatabase];
