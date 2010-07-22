@@ -130,6 +130,9 @@ server_loop(State) ->
         {action, Client, Act} ->
             io:format("Received~p from client~p~n", [Act, Client]),
 
+            %Wait and stop
+            Client ! {ack, self()},
+
             TimeStamp = getTimeStamp(Client, State#serverState.clientList),
             State#serverState.transactionPid ! {new_action, {self(), TimeStamp, Act}},
 

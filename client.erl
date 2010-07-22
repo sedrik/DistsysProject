@@ -80,7 +80,8 @@ connected(Window, ServerPid) ->
 process(Window, ServerPid, Transaction) ->
   ServerPid ! {request, self()}, %% Send a request to server and wait for proceed message
   receive
-    {proceed, ServerPid} -> send(Window, ServerPid, Transaction); %% received green light send the transaction.
+    {proceed, ServerPid} ->
+        send(Window, ServerPid, Transaction); %% received green light send the transaction.
     {close, ServerPid} -> exit(serverDied);
     Other ->
       io:format("client active unexpected: ~p~n",[Other])
@@ -102,12 +103,23 @@ send(Window, ServerPid, []) ->
   end;
 send(Window, ServerPid, [H|T]) ->
   sleep(3),
-  case loose(0) of
-    %% In order to handle losses, think about adding an extra field to the message sent
-    false -> ServerPid ! {action, self(), H};
-    true -> ok
+  case loose(6) of
+    %% In order to handle losses, think about adding an extra field to the
+    %message sent
+    false ->
+        ServerPid ! {action, self(), H};
+    true ->
+        io:format("dropped package~n"),
+        ok
   end,
-  send(Window, ServerPid, T).
+
+  %Stop and wait
+  receive
+      {ack, ServerPid} ->
+          send(Window, ServerPid, T)
+  after 1000 ->
+          send(Window, ServerPid, [H|T])
+  end.
 %%%%%%%%%%%%%%%%%%%%%%% Active Window %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
