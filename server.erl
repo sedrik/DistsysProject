@@ -92,10 +92,7 @@ server_loop(State) ->
             TimeStamp = getTimeStamp(Client, State#serverState.clientList),
 
             %if we have a transaction going, we need to abort it!
-            if
-                TimeStamp /= idle ->
-                    State#serverState.transactionPid ! {abort, {self(), TimeStamp}}
-            end,
+            State#serverState.transactionPid ! {abort, {self(), TimeStamp}},
 
             NewCL = remove_client(Client, State#serverState.clientList),
 
@@ -193,9 +190,13 @@ store_loop(StoreState) ->
             NewDB = setAccountStamp(read, erlang:max(Data#db.readTime,
                     TimeStamp), Account, StoreState#storeState.database),
 
-            %respond with value
-            %Value = readDB(Account, StoreState#storeState.database),
-            %somePid ! {response, Value}
+            %respond with value, We do not do this since the client ignores it
+            Data = lists:keyfind(Account, #db.account,
+                StoreState#storeState.database),
+            Value = Data#db.value,
+            %StoreState#storeState.transactionPid ! {response, Value}
+
+            io:format("Value of ~p is ~p~n", [Account, Value]),
 
             NewState = StoreState#storeState{database=NewDB},
             store_loop(NewState);
@@ -217,7 +218,15 @@ store_loop(StoreState) ->
             StoreState#storeState.transactionPid ! {response_commited, {ok}},
 
             NewState = StoreState#storeState{database=NewDB},
+            io:format("Store loop: Transaction commited ~n~p~n", [NewState]),
             store_loop(NewState);
+        {requestData, {Account}, TransactionPid} ->
+
+            Data = lists:keyfind(Account, #db.account,
+                StoreState#storeState.database),
+
+            TransactionPid ! {response, {data, Data}},
+            store_loop(StoreState);
         {requestTimeStamp, {Type, Account}, TransactionPid} ->
             TransactionPid ! {response, {timeStamp, getAccountStamp(Type, Account,
                         StoreState#storeState.database)}},
@@ -255,11 +264,12 @@ transaction_loop(State) ->
             case getTransactionData(TimeStamp, State#transactionState.transactions) of
                 aborted ->
                     %if we can not find TimeStamp it has been aborted! reply aborted
-                    ServerPid ! {transaction_done, {aborted, TimeStamp}},
+                    ServerPid ! {transaction_done, {abort, TimeStamp}},
                     State;
                 TransactionData ->
                     %if actions and dependencies is empty then we are done
-                    case TransactionData#transactionData.actions == [] andalso TransactionData#transactionData.dependencies == [] of
+                    case TransactionData#transactionData.actions == [] andalso
+                        TransactionData#transactionData.dependencies == [] of
                         true -> %Commit
                             %Tell the database that the we are commited
                             State#transactionState.storePid ! {commited, {TimeStamp}},
@@ -268,9 +278,11 @@ transaction_loop(State) ->
                             end,
 
                             %Remove myself from all lists
-                            TempTransactions = lists:delete(TransactionData, State#transactionState.transactions),
+                            TempTransactions = lists:delete(TransactionData,
+                                State#transactionState.transactions),
                             NewTransactions = lists:map(fun(TransData) ->
-                                        NewDep = lists:delete(TimeStamp, TransData#transactionData.dependencies),
+                                        NewDep = lists:delete(TimeStamp,
+                                            TransData#transactionData.dependencies),
                                         TransData#transactionData{dependencies = NewDep}
                                 end,
                                 TempTransactions),
@@ -288,15 +300,14 @@ transaction_loop(State) ->
             end,
             transaction_loop(EndState);
         {new_action, {ServerPid, TimeStamp, {write, Account, Value}}} ->
-            %implement
-
             NewState = case TimeStamp < RequestStamp(read, Account) of
                 true ->
                     self() ! {abort, {ServerPid, TimeStamp}},
                     State;
                 false ->
                     WriteStamp = RequestStamp(write, Account),
-                    if TimeStamp >= WriteStamp ->
+                    case TimeStamp >= WriteStamp of
+                        true ->
                             %store old value in OldData
                             Data = RequestData(Account),
 
@@ -318,7 +329,9 @@ transaction_loop(State) ->
                                     Account, Value}, TimeStamp, self()},
 
                             %New state
-                            State#transactionState{transactions=NewTransactions}
+                            State#transactionState{transactions=NewTransactions};
+                        false -> %If Thomas Write Rule
+                            State
                     end
             end,
             transaction_loop(NewState);
@@ -332,8 +345,18 @@ transaction_loop(State) ->
                     %Updates the dependencies list
                     TransactionData = getTransactionData(TimeStamp,
                         State#transactionState.transactions),
-                    NewDependencies = [WriteStamp |
-                        TransactionData#transactionData.dependencies],
+
+                    %If the WriteStamp is either unwritten ({0,0,0}) or our own
+                    %we do not want to add it to our dependencies
+                    NewDependencies = case WriteStamp of
+                        TimeStamp ->
+                            TransactionData#transactionData.dependencies;
+                        {0,0,0} ->
+                            TransactionData#transactionData.dependencies;
+                        _Else ->
+                            [WriteStamp |
+                                TransactionData#transactionData.dependencies]
+                    end,
 
                     NewTransactionData =
                     TransactionData#transactionData{dependencies=NewDependencies},
@@ -403,13 +426,10 @@ setTimeStamp(C, TimeStamp, [{C, _}|T]) -> [{C, TimeStamp}|T];
 setTimeStamp(C, TimeStamp, [H|T]) -> [H|setTimeStamp(C,TimeStamp, T)].
 
 getClient(TS, [{C, TS}|_]) -> C;
-getClient(TS, [_|T]) -> getTimeStamp(TS,T).
+getClient(TS, [_|T]) -> getClient(TS,T).
 
 all_gone([]) -> true;
 all_gone(_) -> false.
-
-%readDB(Account, [Acc = #db{account=Account} | _]) -> Acc#db.value;
-%readDB(Account, [ _ | RestOfDB]) -> readDB(Account, RestOfDB).
 
 updateDB(Account, Value, [Acc = #db{account=Account} | RestOfDatabase]) ->
     [ Acc#db{value = Value} | RestOfDatabase];
